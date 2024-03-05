@@ -1,0 +1,45 @@
+service: cognito-registration
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-1 
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminAddUserToGroup
+      Resource: "*"
+
+functions:
+  registerUser:
+    handler: userRegistration.handler
+    timeout: 600
+    events:
+      - http:
+          path: registerUser
+          method: post
+          cors: true # Enable CORS for API Gateway
+
+  signin:
+    handle r: signin.handler
+    events:
+      - http:
+          path: signin
+          method: post
+          cors: true
+
+  authorizer:
+    handler: authorizer.dynamicAuthorizer
+
+
+  insertData:
+    handler: insertintodynamodb.insertData
+    events:
+      - http:
+          path: inventory
+          method: post
+          cors: true
+          authorizer: authorizer
+plugins:
+  - serverless-offline
