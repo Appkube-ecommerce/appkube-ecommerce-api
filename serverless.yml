@@ -1,0 +1,57 @@
+service: e-commerce
+
+frameworkVersion: "3"
+
+
+plugins:
+  - serverless-offline
+
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+
+
+
+functions:
+  post:
+    handler: User_Personal_Information/post.post
+    events:
+      - http:
+          path: /post
+          method: post
+
+  GetByAll:
+    handler: User_Personal_Information/GetByAll.GetByAll
+    events:
+      - http:
+          path: /GetByAll
+          method: get
+
+  UpdateById:
+    handler: User_Personal_Information/UpdateById.UpdateById
+    events:
+      - http:
+          path: /UpdateById/{user_id}
+          method: put 
+
+  OrderPost:
+    handler: Order_History/OrderPost.OrderPost
+    events:
+      - http:
+          path: /OrderPost
+          method: post        
+
+  OrderGetAll:
+    handler: Order_History/OrderGetAll.OrderGetAll
+    events:
+      - http:
+          path: /OrderGetAll
+          method: get        
+
+  OrderGetById:
+    handler: Order_History/OrderGetById.OrderGetById
+    events:
+      - http:
+          path: OrderGetById/{order_id}
+          method: get       
