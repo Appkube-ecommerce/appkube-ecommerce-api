@@ -22,7 +22,7 @@ functions:
           cors: true # Enable CORS for API Gateway
 
   signin:
-    handle r: signin.handler
+    handler: signin.handler
     events:
       - http:
           path: signin
@@ -39,6 +39,38 @@ functions:
       - http:
           path: inventory
           method: post
+          cors: true
+          authorizer: authorizer
+  getData:
+    handler: getallInventory.getAllData
+    events:
+      - http:
+          path: inventory
+          method: get
+          cors: true
+          authorizer: authorizer
+  updatedy:
+    handler: updateInventory.updateQuantity
+    events:
+      - http:
+          path: inventory/{inventory_id}
+          method: put
+          cors: true
+          authorizer: authorizer
+  deletedy:
+    handler: deleteInventory.deleteProduct
+    events:
+      - http:
+          path: inventory/{inventory_id}
+          method: delete
+          cors: true
+          authorizer: authorizer
+  getby:
+    handler: getbyidInventory.getItemById
+    events:
+      - http:
+          path: inventory/{inventory_id}
+          method: get
           cors: true
           authorizer: authorizer
 plugins:

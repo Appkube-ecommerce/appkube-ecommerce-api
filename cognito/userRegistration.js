@@ -6,7 +6,8 @@ require('dotenv').config();
 exports.handler = async (event) => {
     const { email, password, role } = JSON.parse(event.body);
     const username = email; // Set the email as the username
-    
+    console.log("###########")
+    console.log("@@",process.env.USER_POOL_ID)
     try {
         // Create the user in Cognito
         const userParams = {
@@ -20,12 +21,13 @@ exports.handler = async (event) => {
                 }
             ]
         };
-      
+      console.log(userParams)
         const createUserResponse = await cognito.adminCreateUser(userParams).promise();
+        console.log(createUserResponse)
 
         // Assign role to the user
         const groupParams = {
-            GroupName: role, // Assuming role is a group name in Cognito
+            GroupName: role,
             UserPoolId: process.env.USER_POOL_ID,
             Username: username
         };
