@@ -10,31 +10,32 @@ const client = new DynamoDBClient({
 });
 
 async function insertOrderItem(event) {
-  const { products, totalPrice, createdAt, status, customerName  } = JSON.parse(event.body);
-
-  // Parse totalPrice to a number
-  const parsedTotalPrice = parseFloat(totalPrice);
-
-  const id = generateShortNumericId(); // Generate a unique short numeric ID for the order
-
-  const params = {
-    TableName: 'Order',
-    Item: {
-      'id': { N: id.toString() }, // 'N' indicates a numeric attribute
-      'customerName': { S: JSON.stringify(customerName) },
-      'products': { S: JSON.stringify(products) },
-      'totalPrice': { N: parsedTotalPrice.toString() },
-      'createdAt': { S: createdAt },
-      'status': { S: status } // Adding the status to the order item
-    },
-  };
-
   try {
+    const { products, totalPrice, createdAt, status, customerName, customer_id } = JSON.parse(event.body);
+
+    // Parse totalPrice to a number
+    const parsedTotalPrice = parseFloat(totalPrice);
+
+    // Generate a unique short numeric ID with 2 or 3 digits
+    const id = generateShortNumericId();
+
+    const params = {
+      TableName: 'Order',
+      Item: {
+        'id': { N: id.toString() }, // 'N' indicates a numeric attribute
+        'customerName': { S: customerName }, // No need to stringify customerName
+        'customer_id': { N: customer_id.toString() },
+        'products': { S: JSON.stringify(products) },
+        'totalPrice': { N: parsedTotalPrice.toString() },
+        'createdAt': { S: createdAt },
+        'status': { S: status }
+      },
+    };
+
     await client.send(new PutItemCommand(params));
     return {
       statusCode: 201,
       body: JSON.stringify({ message: 'Order item inserted successfully', id }),
-      user: event.requestContext.authorizer.claims['cognito:username'],
     };
   } catch (error) {
     console.error('Error inserting item:', error);
@@ -47,13 +48,13 @@ async function insertOrderItem(event) {
 
 async function updateOrderStatus(event) {
   try {
-    const { id } = event.pathParameters; // Extract id from path parameters
+    const { id } = event.pathParameters;
     const { status } = JSON.parse(event.body);
 
     const params = {
       TableName: 'Order',
       Key: {
-        'id': { N: id.toString() }, // 'N' indicates a numeric attribute
+        'id': { N: id.toString() },
       },
       UpdateExpression: 'SET #s = :s',
       ExpressionAttributeNames: {
@@ -77,11 +78,10 @@ async function updateOrderStatus(event) {
     };
   }
 }
+
 // Function to generate a unique short numeric ID with 2 or 3 digits
 function generateShortNumericId() {
-  // Generate a random number within a specific range (e.g., between 10 and 999)
-  return Math.floor(Math.random() * (999 - 10 + 1)) + 10;
+  return Math.floor(Math.random() * 900 + 100); // Generates a random 3-digit number
 }
-
 
 module.exports = { insertOrderItem, updateOrderStatus };
