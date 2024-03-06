@@ -28,12 +28,28 @@ functions:
           path: /GetByAll
           method: get
 
+  GetById:
+    handler: User_Personal_Information/GetById.GetById
+    events:
+      - http:
+          path: /GetById/{user_id}
+          method: get        
+
   UpdateById:
     handler: User_Personal_Information/UpdateById.UpdateById
     events:
       - http:
           path: /UpdateById/{user_id}
           method: put 
+
+  DeleteById:
+    handler: User_Personal_Information/DeleteById.DeleteById
+    events:
+      - http:
+          path: /DeleteById/{user_id}
+          method: delete   
+          
+                 
 
   OrderPost:
     handler: Order_History/OrderPost.OrderPost
