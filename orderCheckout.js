@@ -2,11 +2,12 @@ const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 
 AWS.config.update({
-    region: 'localhost',
+    region: 'localhost',  
     endpoint: 'http://localhost:8000'
 });
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
+const status_pending = 'pending';  
 
 exports.checkout = async (event) => {
     try {
@@ -16,11 +17,12 @@ exports.checkout = async (event) => {
 
         const orderId = uuidv4();
         const params = {
-            TableName: 'order',
+            TableName: 'order',  
             Item: {
                 order_Id: orderId,
                 product_list: product_list,
                 created_at: currentTime
+                
             }
         };
 
@@ -28,7 +30,7 @@ exports.checkout = async (event) => {
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ orderId })
+            body: JSON.stringify({ orderId }) 
         };
     } catch (error) {
         return {

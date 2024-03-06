@@ -10,7 +10,7 @@ const dynamodb = new AWS.DynamoDB.DocumentClient();
 module.exports.getOrderHistory = async () => {
     try {
       const params = {
-        TableName: 'order' // Updated table name
+        TableName: 'order'  
       };
    
       const { Items } = await dynamodb.scan(params).promise();
