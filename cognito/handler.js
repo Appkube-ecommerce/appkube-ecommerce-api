@@ -52,3 +52,51 @@ function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
+
+
+
+
+/*{
+  "access_token": "EAAMgtQusqZCEBO9loHZCAeJBWc2QbQm4GO8tqk3OPh2hxFQLy3ToY8NVeNpixmP7kxQQCWBeZCgMghAPrTUAUVHRPS62vkLz1tomzn09JnfLJiRMzQ9yIvgtLXMICOKx4VZCeY0IDKIjcWqAZBvZCa0DrTxG7Vr2SVkOKWQwl9YRSWCR9yaY2dlEFgjtcKZC8LG",
+  "requests": [
+    {
+      "method": "CREATE",
+      "retailer_id": "retailer-274772",
+      "data": {
+        "availability": "out of stock",
+        "brand": "Nike",
+        "category": "t-shirts",
+        "description": "product description",
+        "image_url": "http://www.images.example.com/t-shirts/1.png",
+        "name": "product name",
+        "price": 10,
+        "currency": "USD",
+        "shipping": [
+           {
+              "country": "US",
+              "region": "CA",
+              "service": "service",
+              "price_value": 10,
+              "price_currency": "USD"
+           }
+        ],
+         "condition": "new",
+         "url": "http://www.images.example.com/t-shirts/1.png",
+         "retailer_product_group_id": "product-group-1"
+      },
+      "applinks": {
+          "android": [{
+              "app_name": "Electronic Example Android",
+              "package": "com.electronic",
+              "url": "example-android://electronic"
+              }],
+          "ios": [{
+              "app_name": "Electronic Example iOS",
+              "app_store_id": 2222,
+              "url": "example-ios://electronic"
+              }]
+      }
+    }
+  ]
+}*/
+
