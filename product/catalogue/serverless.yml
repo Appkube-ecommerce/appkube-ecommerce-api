@@ -12,9 +12,16 @@ plugins:
  
 functions:
   hello:
-    handler: toInsert.createProduct
+    handler: product/catalogue/toInsert.createProduct
     timeout: 300
     events:
       - httpApi:
           path: /create
           method: post
+  update:
+    handler: product/catalogue/update.updateProduct
+    timeout: 300
+    events:
+      - httpApi:
+          path: /create
+          method: put
