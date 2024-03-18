@@ -1,0 +1,33 @@
+service: fb-graph-batch-example
+
+plugins:
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-1
+
+functions:
+  createProduct:
+    handler: handler.createProduct
+    events:
+      - http:
+          path: /create
+          method: post
+
+resources:
+  Resources:
+    ProductsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Products
+        AttributeDefinitions:
+          - AttributeName: productId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: productId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
