@@ -2,7 +2,7 @@ const axios = require('axios');
 
 async function sendCatalogMessage(toPhoneNumber, bodyText, thumbnailProductRetailerId, footerText, accessToken) {
   try {
-    const endpoint = 'https://graph.facebook.com/v19.0/205920032613965/messages';
+    const endpoint = 'https://graph.facebook.com/v19.0//messages';
     const requestBody = {
       "messaging_product": "whatsapp",
       "recipient_type": "individual",
