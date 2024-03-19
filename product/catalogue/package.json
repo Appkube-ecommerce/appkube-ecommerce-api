@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.535.0",
     "dotenv": "^16.4.5",
     "serverless-offline": "^13.3.3"
   }
