@@ -10,30 +10,41 @@ const dynamoDB = new DynamoDBClient({
 
 const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL;
 const CATALOG_ID = process.env.CATALOG_ID;
+const ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 
-const createProductInCatalog = async (productData) => {
+const createProductInCatalog = async (productId, productData) => {
   try {
-    const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, productData);
+    const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/products?access_token=${ACCESS_TOKEN}`, {
+      retailer_id: productId,
+      availability: productData.availability,
+      brand: productData.brand,
+      category: productData.category,
+      description: productData.description,
+      image_url: productData.image_url,
+      name: productData.name,
+      price: productData.price,
+      currency: productData.currency,
+      url: productData.url
+    });
     return response.data;
   } catch (error) {
+    console.error('Failed to create product in Facebook catalog:', error.response.data);
     throw new Error(`Failed to create product in Facebook catalog: ${error.message}`);
   }
 };
 
-
-const saveProductToLocalDynamoDB = async (productData) => {
-  const productId = uuidv4(); // Generate a unique product ID using UUID
+const saveProductToLocalDynamoDB = async (productId, productData) => {
   const params = {
     TableName: 'Product',
     Item: {
       productId: { S: productId },
-      Image: { S: productData.requests[0].data.image_url },
-      Title: { S: productData.requests[0].data.name },
-      Description: { S: productData.requests[0].data.description },
-      WebsiteLink: { S: productData.requests[0].data.url },
-      Price: { N: productData.requests[0].data.price.toString() },
+      Image: { S: productData.image_url },
+      Title: { S: productData.name },
+      Description: { S: productData.description },
+      WebsiteLink: { S: productData.url },
+      Price: { N: productData.price.toString() },
       Condition: { S: 'New' },
-      Availability: { S: productData.requests[0].data.availability },
+      Availability: { S: productData.availability },
       Status: { S: 'Active' }
     }
   };
@@ -51,9 +62,12 @@ module.exports.createProduct = async (event) => {
   try {
     const productData = JSON.parse(event.body);
 
-    const facebookResponse = await createProductInCatalog(productData);
+    // Generate a unique product ID using UUID
+    const productId = uuidv4();
 
-    await saveProductToLocalDynamoDB(productData);
+    // Use the same product ID for both operations
+    const facebookResponse = await createProductInCatalog(productId, productData);
+    await saveProductToLocalDynamoDB(productId, productData);
 
     return {
       statusCode: 200,
