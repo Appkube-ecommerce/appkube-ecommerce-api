@@ -1,0 +1,41 @@
+# createTableProduct:
+#   handler: rest_apis/product/createTableProduct.createTableProduct
+#   events:
+#     - http:
+#         path: /createTableProduct
+#         method: post
+
+productpost:
+  handler: rest_apis/product/insertproducts.insertProducts
+  events:
+    - http:
+        path: /product
+        method: post
+
+productdelete:
+  handler: rest_apis/product/productdelete.deleteProduct
+  events:
+    - http:
+        path: /product/{id}
+        method: delete
+
+productupdate:
+  handler: rest_apis/product/productupdate.updateProduct
+  events:
+    - http:
+        path: /product/{id}
+        method: put
+
+productgetall:
+  handler: rest_apis/product/getallproduct.getAllproduct
+  events:
+    - http:
+        path: /product
+        method: get
+
+productgetbyid:
+  handler: rest_apis/product/getbyidproduct.getbyidproduct
+  events:
+    - http:
+        path: /product/{id}
+        method: get

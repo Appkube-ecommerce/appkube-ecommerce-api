@@ -1,0 +1,34 @@
+  customeradd:
+    handler: rest_apis/customers/customeradd.insertCustomer
+    events:
+      - httpApi:
+          path: /customer
+          method: post
+
+  customerget:
+    handler: rest_apis/customers/customerget.getAllCustomer
+    events:
+      - httpApi:
+          path: /customer
+          method: get
+
+  customergetbyid:
+    handler: rest_apis/customers/customergetbyid.getCustomerById
+    events:
+      - httpApi:
+          path: /customer/{customer_Id}
+          method: get
+
+  customerupdatebyid:
+    handler: rest_apis/customers/customerupdatebyid.updateCustomer
+    events:
+      - httpApi:
+          path: /customer/{customer_Id}
+          method: put
+
+  customerdeletebyid:
+    handler: rest_apis/customers/customerdeletebyid.deleteCustomer
+    events:
+      - httpApi:
+          path: /customer/{customer_Id}
+          method: delete

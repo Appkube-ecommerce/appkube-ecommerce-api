@@ -1,0 +1,34 @@
+  categorieinsert:
+    handler: rest_apis/categories/categorieinsert.categorieinsert
+    events:
+      - http:
+          path: /categorie
+          method: post
+
+  categorieget:
+    handler: rest_apis/categories/categorieget.categorieget
+    events:
+      - http:
+          path: /categorie
+          method: get          
+
+  categoriegetbyid:
+    handler: rest_apis/categories/categoriegetbyid.categoriegetbyid
+    events:
+      - http:
+          path: /categorie/{id}
+          method: get  
+
+  categorieupdatebyid:
+    handler: rest_apis/categories/categorieupdatebyid.categorieupdatebyid
+    events:
+      - http:
+          path: /categorie/{id}
+          method: put
+
+  categoriedeletebyid:
+    handler: rest_apis/categories/categoriedeletebyid.categoriedeletebyid
+    events:
+      - http:
+          path: /categorie/{id}
+          method: delete         
