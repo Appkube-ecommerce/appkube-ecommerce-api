@@ -22,18 +22,19 @@ frameworkVersion: "3"
 
 provider:
   name: aws
+  stage: dev
+  region: us-east-1
   runtime: nodejs18.x
   role: arn:aws:iam::657907747545:role/appkube-ecommerce-api-service-role
   httpApi:
     cors:
       allowedOrigins:
-        - '*'
+        - "*"
       allowedHeaders:
         - Content-Type
 
 # you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
+
 
 # you can add statements to the Lambda function's IAM Role here
 #  iam:
@@ -72,15 +73,15 @@ functions:
   sendBill:
     handler: OrderBills/shareBillsOnWhatsaap.handler
     events:
-    - httpApi:
+      - httpApi:
           path: /sendBills
           method: post
-    
 
   createProduct:
     handler: products\createProduct.handler
+    timeout: 60
     events:
-    - httpApi:
+      - httpApi:
           path: /createProduct
           method: post
 

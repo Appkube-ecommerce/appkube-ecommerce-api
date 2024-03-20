@@ -4,11 +4,9 @@ const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-
 const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL;
 const CATALOG_ID = process.env.CATALOG_ID;
 const ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
-
 
 function generateUniqueId() {
     return Math.floor(Math.random() * Date.now()).toString();
@@ -16,12 +14,27 @@ function generateUniqueId() {
 
 module.exports.handler = async (event) => {
     try {
+        // Input validation
+        if (!event.body) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ message: 'Missing request body' }),
+            };
+        }
 
-
-        const tableName = 'Product-hxojpgz675cmbad5uyoeynwh54-dev';
-
+        const requiredFields = ['name', 'price', 'image', 'description', 'unit', 'category', 'availability', 'brand', 'currency'];
         const productData = JSON.parse(event.body);
 
+        for (const field of requiredFields) {
+            if (!(field in productData)) {
+                return {
+                    statusCode: 400,
+                    body: JSON.stringify({ message: `Missing required field: ${field}` }),
+                };
+            }
+        }
+
+        const tableName = 'Product-hxojpgz675cmbad5uyoeynwh54-dev';
 
         const s3params = {
             Bucket: 'posdmsservice',
@@ -30,10 +43,8 @@ module.exports.handler = async (event) => {
             ContentType: 'image/png'
         };
 
-
         const uploadResult = await s3.upload(s3params).promise();
         const publicUrl = uploadResult.Location;
-
 
         const newProduct = {
             id: generateUniqueId(),
@@ -43,13 +54,13 @@ module.exports.handler = async (event) => {
             description: productData.description,
             unit: productData.unit,
             category: productData.category,
-
             createdAt: new Date().toISOString(),
             _version: 1,
             _lastChangedAt: Date.now(),
             _deleted: false,
             updatedAt: new Date().toISOString(),
         };
+
         try {
             const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/products?access_token=${ACCESS_TOKEN}`, {
                 retailer_id: newProduct.id,
@@ -63,25 +74,32 @@ module.exports.handler = async (event) => {
                 currency: productData.currency,
                 url: newProduct.image
             });
-            console.log(response.body)
+
+          
 
             const putParams = {
                 TableName: tableName,
                 Item: newProduct,
             };
+            if(response.status === 200){
 
-            await dynamoDB.put(putParams).promise();
+                await dynamoDB.put(putParams).promise();
+            }
+
 
             return {
                 statusCode: 200,
                 body: JSON.stringify({ message: 'Product created successfully', newProduct }),
             };
         } catch (error) {
-            console.error('Failed to create product in Facebook catalog:', error.response.data);
-            throw new Error(`Failed to create product in Facebook catalog: ${error.message}`);
+            console.error('Failed to create product in Facebook catalog:', error.response ? error.response.data : error.message);
+            return {
+                statusCode: error.response ? error.response.status : 500,
+                body: JSON.stringify({ message: 'Failed to create product in Facebook catalog', error: error.response ? error.response.data : error.message }),
+            };
         }
-
     } catch (error) {
+        console.error('Failed to create product:', error);
         return {
             statusCode: 500,
             body: JSON.stringify({ message: 'Failed to create product', error: error.message }),
