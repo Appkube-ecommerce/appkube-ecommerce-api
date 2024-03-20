@@ -9,81 +9,84 @@ const dynamoDB = new DynamoDBClient({
     endpoint: 'http://localhost:8000'
   });
    
-const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL//'https://graph.facebook.com/v19.0';
+const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL
 const CATALOG_ID = process.env.CATALOG_ID 
-const updateProductInCatalog = async (product) => {
-    try {
-    
-        const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, product);
-        return response.data;
-      } catch (error) {
-        throw new Error(`Failed to update product in Facebook catalog: ${error.message}`);
-      }
-    };
-  
-  const updateProductInDynamoDB = async (productId,availability,price) => {
-    const params = {
-        TableName: 'Products',
-        Key: {
-            productId: { S: productId } // Assuming productId is a string
-        },
-        UpdateExpression: 'SET #attr1 = :val1, #attr2 = :val2', // Specify the attributes to be updated
-        ExpressionAttributeNames: {
-            '#attr1': 'availability',
-            '#attr2': 'Price'
-        },
-        ExpressionAttributeValues: {
-            ':val1': { S: availability }, // Replace 'attribute1' with the corresponding attribute value in updatedProductData
-            ':val2': { N: price }  // Replace 'attribute2' with another attribute value if needed
-        }
-    };
-
-    try {
-        await dynamoDB.send(new UpdateItemCommand(params)); // Use send method to send UpdateItemCommand
-        console.log('Product updated in DynamoDB:', productId);
-    } catch (error) {
-        console.error('Error updating product in DynamoDB:', error);
-        throw new Error(`Failed to update product in DynamoDB: ${error.message}`);
-    }
-};
-
   module.exports.updateProduct = async (event) => {
     try {
-      const {productId,availability,price} = JSON.parse(event.body);
-      
-      // Array of update requests
+      if (!event.body) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Missing request body' }),
+        };
+    }
+    const requiredFields = ['productId','unit','price'];
+    const productData = JSON.parse(event.body);
+
+   for (const field of requiredFields) {
+        if (!(field in productData)) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ message: `Missing required field: ${field}` }),
+            };
+        }
+    } 
       const product= {
         "access_token": process.env.ACCESS_TOKEN,
          "requests": [
            {
              "method": "UPDATE",
-             "retailer_id":  productId,
+             "retailer_id":  productData.productId,
              "data":
-          {
-            "availability": availability,
-            "price": price,
+          {     
+            "price": productData.price,
           }
-             }
-             
-           
+             }      
          ]
-       }
-    
-      const facebookResponse = await updateProductInCatalog(product);
-    
-        // Update product data in DynamoDB
-        await updateProductInDynamoDB(productId,availability,price);
-  
-        console.log(`Product updated successfully - Retailer ID: `);
-     
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Products updated successfully' }),
-      };
+       }    
+       try {
+        const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, product)
+           
+      console.log("###",response)
+
+      const params = {
+        TableName: 'Product-hxojpgz675cmbad5uyoeynwh54-dev',
+        Key: {
+            id: { S: productData.productId } // Assuming productId is a string
+        },
+        UpdateExpression: 'SET #attr1 = :val1, #attr2 = :val2', // Specify the attributes to be updated
+        ExpressionAttributeNames: {
+            '#attr1': 'unit',
+            '#attr2': 'price'
+        },
+        ExpressionAttributeValues: {
+            ':val1': { S: productData.unit }, // Replace 'attribute1' with the corresponding attribute value in updatedProductData
+            ':val2': { S: productData.price }  // Replace 'attribute2' with another attribute value if needed
+        }
+    };
+        if(response.status === 200){
+
+            await dynamoDB.send(new UpdateItemCommand(params));
+            console.log("$$$$$4")
+         
+        }
+
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ message: 'Product updated successfully' }),
+        };
     } catch (error) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ message: 'Failed to update products', error: error.message }),
-      };
+        console.error('Failed to update product in database:', error.response ? error.response.data : error.message);
+        return {
+            statusCode: error.response ? error.response.status : 500,
+            body: JSON.stringify({ message: 'Failed to update product in database', error: error.response ? error.response.data : error.message }),
+        };
     }
-  };
+} catch (error) {
+    console.error('Failed to create product:', error);
+    return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'Failed to create product', error: error.message }),
+    };
+}
+};

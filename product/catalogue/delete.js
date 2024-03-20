@@ -9,62 +9,69 @@ const dynamoDB = new DynamoDBClient({
  
 const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL;
 const CATALOG_ID = process.env.CATALOG_ID;
- 
-const deleteProductInCatalog = async (requestData) => {
-    try {
-        console.log("###",requestData)
-        const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, requestData);
-        console.log("$$$",response.data)
-        return response.data;
-    } catch (error) {
-        throw new Error(`Failed to delete product in Facebook catalog: ${error.message}`);
-    }
-};
- 
-const deleteProductFromDynamoDB = async (productId) => {
-    const params = {
-        TableName: 'Products',
-        Key: {
-            productId: { S: productId } // Assuming productId is a string
-        }
-    };
- 
-    try {
-        await dynamoDB.send(new DeleteItemCommand(params)); // Use send method to execute DeleteItemCommand
-        console.log('Product deleted from DynamoDB:', productId);
-    } catch (error) {
-        console.error('Error deleting product from DynamoDB:', error);
-        throw new Error(`Failed to delete product from DynamoDB: ${error.message}`);
-    }
-};
- 
+const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 module.exports.deleteProduct = async (event) => {
     try {
-        const {productId}= JSON.parse(event.body);
+        if (!event.body) {
+          return {
+              statusCode: 400,
+              body: JSON.stringify({ message: 'Missing request body' }),
+          };
+      }
+      const requiredFields = ['productId','unit','price'];
+      const productData = JSON.parse(event.body);
+  
+     
+          if (!(productData.productId)) {
+              return {
+                  statusCode: 400,
+                  body: JSON.stringify({ message: `Missing required field: ${field}` }),
+              };
+          }
+       
+      console.log("$$$",productData.productId)
+        // Array of update requests
         const product= {
-            "access_token": process.env.ACCESS_TOKEN,
+            "access_token": ACCESS_TOKEN,
              "requests": [
                {
                  "method": "DELETE",
-                 "retailer_id":  productId,
+                 "retailer_id":  productData.productId,
                  }   
              ]
-           }
-        const facebookResponse = await deleteProductInCatalog(product);
-     console.log("$$$$$$$",facebookResponse)
-            await deleteProductFromDynamoDB(productId);
- 
-            console.log(`Product deleted successfully `);
-        
- 
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: 'Products deleted successfully' }),
+           }    
+         try {
+          const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, product)
+             
+        console.log("###",response)
+  
+        const params = {
+            TableName: 'Products',
+            Key: {
+                productId: { S: productData.productId } // Assuming productId is a string
+            }
         };
-    } catch (error) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to delete products' }),
-        };
-    }
-};
+          if(response.status === 200){
+            await dynamoDB.send(new DeleteItemCommand(params));
+          }
+         return {
+              statusCode: 200,
+              body: JSON.stringify({ message: 'Product deleted successfully' }),
+          };
+      } catch (error) {
+          console.error('Failed to deleted product in database:', error.response ? error.response.data : error.message);
+          return {
+              statusCode: error.response ? error.response.status : 500,
+              body: JSON.stringify({ message: 'Failed to delete product in database', error: error.response ? error.response.data : error.message }),
+          };
+      }
+  } catch (error) {
+      console.error('Failed to create product:', error);
+      return {
+          statusCode: 500,
+          body: JSON.stringify({ message: 'Failed to create product', error: error.message }),
+      };
+  }
+  };
+      
+  
