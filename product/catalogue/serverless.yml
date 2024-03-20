@@ -32,3 +32,17 @@ functions:
       - httpApi:
           path: /delete
           method: delete
+  get:
+    handler: getProduct.getAllProducts
+    timeout: 300
+    events:
+      - httpApi:
+          path: /get
+          method: get
+  getById:
+    handler: getById.getProductById
+    timeout: 300
+    events:
+      - httpApi:
+          path: /get/{productId}
+          method: get

@@ -11,29 +11,30 @@ const dynamoDB = new DynamoDBClient({
    
 const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL//'https://graph.facebook.com/v19.0';
 const CATALOG_ID = process.env.CATALOG_ID 
-const updateProductInCatalog = async (requestData) => {
+const updateProductInCatalog = async (product) => {
     try {
-        const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, requestData);
+    
+        const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, product);
         return response.data;
       } catch (error) {
         throw new Error(`Failed to update product in Facebook catalog: ${error.message}`);
       }
     };
   
-  const updateProductInDynamoDB = async (productId, updatedProductData) => {
+  const updateProductInDynamoDB = async (productId,availability,price) => {
     const params = {
-        TableName: 'ProductsTable',
+        TableName: 'Products',
         Key: {
             productId: { S: productId } // Assuming productId is a string
         },
         UpdateExpression: 'SET #attr1 = :val1, #attr2 = :val2', // Specify the attributes to be updated
         ExpressionAttributeNames: {
             '#attr1': 'availability',
-            '#attr2': 'price'
+            '#attr2': 'Price'
         },
         ExpressionAttributeValues: {
-            ':val1': { S: updatedProductData.availability }, // Replace 'attribute1' with the corresponding attribute value in updatedProductData
-            ':val2': { N: updatedProductData.price.toString() }  // Replace 'attribute2' with another attribute value if needed
+            ':val1': { S: availability }, // Replace 'attribute1' with the corresponding attribute value in updatedProductData
+            ':val2': { N: price }  // Replace 'attribute2' with another attribute value if needed
         }
     };
 
@@ -48,26 +49,33 @@ const updateProductInCatalog = async (requestData) => {
 
   module.exports.updateProduct = async (event) => {
     try {
-      const requestData = JSON.parse(event.body);
-      const accessToken = requestData.access_token; // Access token provided in the request
-      const requests = requestData.requests; // Array of update requests
-      console.log("%%%%%%",requestData)
-      const facebookResponse = await updateProductInCatalog(requestData);
-      console.log("************",facebookResponse)
-      for (const request of requests) {
-        const method = request.method;
-        const productIdToUpdate = request.retailer_id;
-        const updatedProductData = request.data;
-
-        // Update product in Facebook catalog
-     
-  
+      const {productId,availability,price} = JSON.parse(event.body);
+      
+      // Array of update requests
+      const product= {
+        "access_token": process.env.ACCESS_TOKEN,
+         "requests": [
+           {
+             "method": "UPDATE",
+             "retailer_id":  productId,
+             "data":
+          {
+            "availability": availability,
+            "price": price,
+          }
+             }
+             
+           
+         ]
+       }
+    
+      const facebookResponse = await updateProductInCatalog(product);
+    
         // Update product data in DynamoDB
-        await updateProductInDynamoDB(productIdToUpdate, updatedProductData);
+        await updateProductInDynamoDB(productId,availability,price);
   
-        console.log(`Product ${method}d successfully - Retailer ID: ${productIdToUpdate}`);
-      }
-  
+        console.log(`Product updated successfully - Retailer ID: `);
+     
       return {
         statusCode: 200,
         body: JSON.stringify({ message: 'Products updated successfully' }),
