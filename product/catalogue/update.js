@@ -1,6 +1,6 @@
 const axios = require('axios');
 const AWS = require('aws-sdk');
-const { DynamoDBClient, UpdateItemCommand } = require('@aws-sdk/client-dynamodb'); 
+const { DynamoDBClient, UpdateItemCommand,GetItemCommand } = require('@aws-sdk/client-dynamodb'); 
 require('dotenv').config();
 
 
@@ -8,7 +8,7 @@ const dynamoDB = new DynamoDBClient({
     region: 'us-east-1',
     endpoint: 'http://localhost:8000'
   });
-   
+    
 const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL
 const CATALOG_ID = process.env.CATALOG_ID 
   module.exports.updateProduct = async (event) => {
@@ -30,6 +30,22 @@ const CATALOG_ID = process.env.CATALOG_ID
             };
         }
     } 
+
+    const getProductParams = {
+      TableName: 'Product-hxojpgz675cmbad5uyoeynwh54-dev',
+      Key: {
+          id: { S: productData.productId }
+      }
+  };
+
+  const getProductResponse = await dynamoDB.send(new GetItemCommand(getProductParams));
+ 
+  if (!getProductResponse.Item) {
+      return {
+          statusCode: 404,
+          body: JSON.stringify({ message: 'Product not found' }),
+      };
+  }
       const product= {
         "access_token": process.env.ACCESS_TOKEN,
          "requests": [
@@ -66,12 +82,10 @@ const CATALOG_ID = process.env.CATALOG_ID
         if(response.status === 200){
 
             await dynamoDB.send(new UpdateItemCommand(params));
-            console.log("$$$$$4")
+        
          
         }
-
-
-        return {
+      return {
             statusCode: 200,
             body: JSON.stringify({ message: 'Product updated successfully' }),
         };
@@ -83,10 +97,10 @@ const CATALOG_ID = process.env.CATALOG_ID
         };
     }
 } catch (error) {
-    console.error('Failed to create product:', error);
+    console.error('Failed to update product:', error);
     return {
         statusCode: 500,
-        body: JSON.stringify({ message: 'Failed to create product', error: error.message }),
+        body: JSON.stringify({ message: 'Failed to update product', error: error.message }),
     };
 }
 };

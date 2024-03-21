@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { DynamoDBClient, DeleteItemCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, DeleteItemCommand,GetItemCommand} = require('@aws-sdk/client-dynamodb');
 require('dotenv').config();
  
 const dynamoDB = new DynamoDBClient({
@@ -18,9 +18,9 @@ module.exports.deleteProduct = async (event) => {
               body: JSON.stringify({ message: 'Missing request body' }),
           };
       }
-      const requiredFields = ['productId','unit','price'];
+     console.log("$#$#$#$")
       const productData = JSON.parse(event.body);
-  
+
      
           if (!(productData.productId)) {
               return {
@@ -29,7 +29,22 @@ module.exports.deleteProduct = async (event) => {
               };
           }
        
-      console.log("$$$",productData.productId)
+
+      const getProductParams = {
+        TableName: 'Product-hxojpgz675cmbad5uyoeynwh54-dev',
+        Key: {
+            id: { S: productData.productId }
+        }
+    };
+
+    const getProductResponse = await dynamoDB.send(new GetItemCommand(getProductParams));
+
+    if (!getProductResponse.Item) {
+        return {
+            statusCode: 404,
+            body: JSON.stringify({ message: 'Product not found' }),
+        };
+    }
         // Array of update requests
         const product= {
             "access_token": ACCESS_TOKEN,
@@ -41,12 +56,13 @@ module.exports.deleteProduct = async (event) => {
              ]
            }    
          try {
+           
           const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, product)
              
         console.log("###",response)
   
         const params = {
-            TableName: 'Products',
+            TableName: 'Product-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
                 productId: { S: productData.productId } // Assuming productId is a string
             }

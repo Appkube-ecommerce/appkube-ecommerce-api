@@ -16,33 +16,33 @@ functions:
     timeout: 300
     events:
       - httpApi:
-          path: /create
+          path: /product
           method: post
   update:
     handler: update.updateProduct
     timeout: 300
     events:
       - httpApi:
-          path: /update
+          path: /product
           method: put
   delete:
-    handler: update.updateProduct
+    handler: delete.deleteProduct
     timeout: 300
     events:
       - httpApi:
-          path: /delete
+          path: /product
           method: delete
   get:
     handler: getProduct.getAllProducts
     timeout: 300
     events:
       - httpApi:
-          path: /get
+          path: /product
           method: get
   getById:
     handler: getById.getProductById
     timeout: 300
     events:
       - httpApi:
-          path: /get/{productId}
+          path: /product/{productId}
           method: get
