@@ -1,0 +1,81 @@
+service: inventory-service
+
+plugins:
+ - serverless-offline 
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-west-2
+
+functions:
+  createInventoryItem:
+    handler: createInventory.createInventoryItem
+    events:
+      - http:
+          path: inventory
+          method: post
+          cors: true
+
+  updateInventoryItem:
+      handler: updateInventory.updateInventoryItem
+      events:
+      - http:
+          path: updateInventory
+          method: PUT
+          cors: true
+
+  getAllInventory:
+      handler: getAllInventory.getAllInventory
+      events:
+      - http:
+          path: getAllInventory
+          method: get
+          cors: true
+
+  getInventoryById:
+    handler: getById.getInventoryById
+    events:
+      - http:
+          method: GET
+          path: /inventory/{inventoryId}
+          cors: true
+  deleteInventoryById:
+    handler: deleteById.deleteInventoryById
+    events:
+      - http:
+          method: DELETE
+          path: /inventory/{inventoryId}
+          cors: true
+  clearAllInventory:
+    handler: handler.clearAllInventory
+    events:
+      - http:
+          path: clearAllInventory
+          method: DELETE
+          cors: true
+  createInventoryTable:
+    handler: createTable.createInventoryTable
+    events:
+      - http:
+          path: createInventoryTable
+          method: post
+
+
+resources:
+  Resources:
+    InventoryTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Inventory
+        AttributeDefinitions:
+          - AttributeName: inventoryId
+            AttributeType: S
+          - AttributeName: productId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: inventoryId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
