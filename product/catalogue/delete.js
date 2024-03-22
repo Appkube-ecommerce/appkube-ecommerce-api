@@ -5,7 +5,7 @@ require('dotenv').config();
 const dynamoDB = new DynamoDBClient({
     region: 'us-east-1',
     endpoint: 'http://localhost:8000'
-});
+}); 
  
 const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL;
 const CATALOG_ID = process.env.CATALOG_ID;

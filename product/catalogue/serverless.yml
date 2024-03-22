@@ -12,7 +12,7 @@ plugins:
  
 functions:
   hello:
-    handler: toInsert.createProduct
+    handler: toInsert.handler
     timeout: 300
     events:
       - httpApi:
