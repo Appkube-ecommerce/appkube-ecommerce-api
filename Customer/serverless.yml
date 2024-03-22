@@ -1,0 +1,53 @@
+service: order
+
+frameworkVersion: "3"
+
+plugins:
+ - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+
+functions:
+  createTable:
+    handler: createTable.createTable
+    events:
+      - httpApi:
+          path: /createTable
+          method: POST
+  customeradd:
+    handler: customeradd.insertCustomer
+    events:
+      - httpApi:
+          path: /customerinsert
+          method: post
+
+  customerget:
+    handler: customerget.getAllCustomer
+    events:
+      - httpApi:
+          path: /customerget
+          method: get
+
+  customergetbyid:
+    handler: customergetbyid.getCustomerById
+    events:
+      - httpApi:
+          path: /customer/{customerId}
+          method: get
+
+  customerupdatebyid:
+    handler: customerupdatebyid.updateCustomer
+    timeout: 300
+    events:
+      - httpApi:
+          path: /customer/{customerId}
+          method: put
+
+  customerdeletebyid:
+    handler: customerdeletebyid.deleteCustomer
+    events:
+      - httpApi:
+          path: /customer/{customerId}
+          method: delete
