@@ -21,7 +21,13 @@ module.exports.updateProduct = async (event) => {
         }
 
         const productData = JSON.parse(event.body);
-        const update = productData.update;
+        const update = { ...productData.update }; 
+        const updateForDB = { ...productData.update }; 
+
+       
+        if ('unit' in update) {
+            delete update.unit;
+        }
 
         const getProductParams = {
             TableName: 'Product-hxojpgz675cmbad5uyoeynwh54-dev',
@@ -66,35 +72,22 @@ module.exports.updateProduct = async (event) => {
                 ExpressionAttributeValues: {}, 
             };
 
-        
-            Object.keys(update).forEach((key, index) => {
-
+            Object.keys(updateForDB).forEach((key, index) => {
                 params.ExpressionAttributeNames[`#attr${index+1}`] = key;
-
-                params.ExpressionAttributeValues[`:val${index+1}`] = { S: update[key] };
-
+                params.ExpressionAttributeValues[`:val${index+1}`] = { S: updateForDB[key] };
                 params.UpdateExpression += ` #attr${index+1} = :val${index+1},`;
             });
 
-
             params.UpdateExpression = params.UpdateExpression.slice(0, -1);
 
-            try {
-  
-                const result = await dynamoDB.send(new UpdateItemCommand(params));
-                console.log("Product updated successfully:", result);
+      
+            const result = await dynamoDB.send(new UpdateItemCommand(params));
+            console.log("Product updated successfully in the database:", result);
 
-                return {
-                    statusCode: 200,
-                    body: JSON.stringify({ message: 'Product updated successfully' }),
-                };
-            } catch (error) {
-                console.error('Failed to update product in database:', error);
-                return {
-                    statusCode: error.$metadata.httpStatusCode || 500,
-                    body: JSON.stringify({ message: 'Failed to update product in database', error: error.message }),
-                };
-            }
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ message: 'Product updated successfully' }),
+            };
         } catch (error) {
             console.error('Failed to update product via Facebook Graph API:', error.response ? error.response.data : error.message);
             return {
@@ -110,4 +103,3 @@ module.exports.updateProduct = async (event) => {
         };
     }
 };
-
