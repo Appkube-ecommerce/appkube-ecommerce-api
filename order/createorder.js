@@ -1,108 +1,64 @@
-const { DynamoDBClient, PutItemCommand, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+// import necessary modules
+const { DynamoDBClient, PutItemCommand, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
+// create DynamoDB client
 const dynamoDB = new DynamoDBClient({
     region: process.env.REGION,
     endpoint: process.env.ENDPOINT
 });
 
+// define the createOrder handler
 module.exports.createOrder = async (event) => {
     try {
-        // Step 1: Receive and Validate the Request
+        // parse the request body
         const requestBody = JSON.parse(event.body);
-        console.log("Request Body:", requestBody);
 
+        // extract relevant information from the request body
         const { items, paymentMethod, status, total } = requestBody;
-        console.log("Items:", items);
-        console.log("Payment Method:", paymentMethod);
-        console.log("Status:", status);
-        console.log("Total:", total);
 
-        // Generate a unique ID for the order
+        // generate a unique order ID
         const orderId = uuidv4();
-        console.log("Order ID:", orderId);
 
-        // Step 2: Insert Data into the Database
-        // Check if both product ID and customer ID are available
-        const productPromises = items.map(item => {
-            const getProductParams = {
-                TableName: 'Product',
-                Key: { 'productId': { S: item.productId } }
-            };
-            return dynamoDB.send(new GetItemCommand(getProductParams));
-        });
-
-        const customerPromises = items.map(item => {
-            const getCustomerParams = {
-                TableName: 'Customer',
-                Key: { 'customerId': { S: item.customerId } }
-            };
-            return dynamoDB.send(new GetItemCommand(getCustomerParams));
-        });
-
-        // Wait for all product and customer checks to complete
-        const productResults = await Promise.all(productPromises);
-        const customerResults = await Promise.all(customerPromises);
-
-        // Check if all products and customers exist
-        const allProductsExist = productResults.every(result => !!result.Item);
-        const allCustomersExist = customerResults.every(result => !!result.Item);
-
-        if (!allProductsExist) {
-            throw new Error('One or more products do not exist');
+        // validate if all required keys are present in the request body
+        if (!items || !paymentMethod || !status || !total) {
+            throw new Error('One or more required keys are missing from the request body');
         }
 
-        if (!allCustomersExist) {
-            throw new Error('One or more customers do not exist');
-        }
-
-        // Prepare order items as AttributeValue objects
-        const orderItems = items.map(item => ({
-            M: {
-                productId: { S: item.productId },
-                customerId: { S: item.customerId }, // Add customerId field
-                quantity: { N: item.quantity.toString() },
-                price: { N: item.price.toString() } 
-            }
-        }));
-
-        // Prepare order item as an AttributeValue object
+        // Save the order details to DynamoDB
         const orderItem = {
-            orderId: { S: orderId },
-            items: { L: orderItems },
-            paymentMethod: { S: paymentMethod },
-            status: { S: status },
-            total: { S: total }, // Changed to lowercase 'total'
+            orderId,
+            items,
+            paymentMethod,
+            status,
+            total
         };
 
-        // Save order to DynamoDB
-        const orderParams = {
+        const putOrderParams = {
             TableName: 'Order',
             Item: orderItem
         };
 
-        console.log("Order Params:", orderParams);
+        await dynamoDB.send(new PutItemCommand(putOrderParams));
 
-        await dynamoDB.send(new PutItemCommand(orderParams));
-
-        // Step 3: Update Inventory
-        // Decrease quantity in the inventory table
-        for (const item of items) {
-            const updateInventoryParams = {
-                TableName: 'Inventory',
-                Key: { 'productId': { S: item.productId } },
-                UpdateExpression: 'SET #quantity = #quantity - :quantity',
-                ExpressionAttributeNames: {
-                    '#quantity': 'quantity'
-                },
-                ExpressionAttributeValues: {
-                    ':quantity': { N: item.quantity.toString() }
+        // Update inventory in batches
+        const batchRequests = items.map(item => ({
+            PutRequest: {
+                Item: {
+                    productId: item.productId,
+                    quantity: item.quantity
                 }
-            };
+            }
+        }));
 
-            await dynamoDB.send(new UpdateItemCommand(updateInventoryParams));
-        }
+        const batchParams = {
+            RequestItems: {
+                'Inventory': batchRequests
+            }
+        };
+
+        await dynamoDB.send(new BatchWriteItemCommand(batchParams));
 
         return {
             statusCode: 200,

@@ -11,7 +11,7 @@ provider:
 
 functions:
   createOrder:
-    handler: createorder.createOrder
+    handler: createOrder.createOrder
     timeout: 600
     events:
       - http:
@@ -19,7 +19,7 @@ functions:
           path: createorder
 
   getallOrder:
-    handler: getallOrder.getAllOrders
+    handler: getAllOrder.getAllOrders
     timeout: 600
     events:
       - http:
@@ -27,7 +27,7 @@ functions:
           path: getallOrder
 
   getByOrderId:
-    handler: getbyid.getByOrderId
+    handler: getById.getByOrderId
     timeout: 600
     events: 
       - http:
@@ -35,7 +35,7 @@ functions:
           path: getbyid/{orderId}   
 
   deleteByOrderId:
-    handler: deletebyid.deleteByOrderId
+    handler: deleteById.deleteByOrderId
     timeout: 600
     events:
       - http:
@@ -43,17 +43,11 @@ functions:
           path: deletebyid/{orderId}
 
   update:
-    handler: update.updateOrder
+    handler: updateOrder.updateOrder
     timeout: 600
     events: 
       - http: 
           method: put
           path: update/{orderId}
 
-  deleteAllOrders:
-    handler: deleteAll.deleteAllOrders
-    timeout: 600
-    events:
-      - http:
-          method:  delete
-          path: deleteAllOrders
+ 

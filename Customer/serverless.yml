@@ -11,43 +11,43 @@ provider:
 
 functions:
   createTable:
-    handler: createTable.createTable
+    handler: createCustomerTable.createTable
     events:
       - httpApi:
           path: /createTable
           method: POST
   customeradd:
-    handler: customeradd.insertCustomer
+    handler: createCustomer.insertCustomer
     events:
       - httpApi:
           path: /customerinsert
           method: post
 
   customerget:
-    handler: customerget.getAllCustomer
+    handler: getAllCustomer.getAllCustomer
     events:
       - httpApi:
-          path: /customerget
+          path: /getAllCustomer
           method: get
 
   customergetbyid:
-    handler: customergetbyid.getCustomerById
+    handler: getCustomerById.getCustomerById
     events:
       - httpApi:
-          path: /customer/{customerId}
+          path: /getCustomerById/{customerId}
           method: get
 
   customerupdatebyid:
-    handler: customerupdatebyid.updateCustomer
+    handler: updateCustomerId.updateCustomer
     timeout: 300
     events:
       - httpApi:
-          path: /customer/{customerId}
+          path: /updateCustomerId/{customerId}
           method: put
 
   customerdeletebyid:
-    handler: customerdeletebyid.deleteCustomer
+    handler: getCustomerById.getCustomerById
     events:
       - httpApi:
-          path: /customer/{customerId}
+          path: /getCustomerById/{customerId}
           method: delete
