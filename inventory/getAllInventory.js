@@ -1,21 +1,21 @@
-const { DynamoDBClient, ScanCommand } = require('@aws-sdk/client-dynamodb');
+// const { DynamoDBClient, ScanCommand } = require('@aws-sdk/client-dynamodb');
 require('dotenv').config();
+const AWS = require('aws-sdk');
 
-const dynamoDB = new DynamoDBClient({
-    region: process.env.REGION,
-    endpoint: process.env.ENDPOINT
-});
+
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
+
 
 module.exports.getAllInventory = async (event) => {
     try {
         // Define the params for the Scan operation
         const params = {
-            TableName: 'Inventory'
+            TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev'
         };
 
         // Perform the Scan operation to get all inventory items
-        const data = await dynamoDB.send(new ScanCommand(params));
-
+        const data = await dynamoDB.scan(params).promise();
+        console.log(data)
         // Return the list of inventory items
         return {
             statusCode: 200,
