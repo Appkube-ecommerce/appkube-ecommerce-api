@@ -66,9 +66,15 @@ provider:
 #    - include-me-dir/**
 
 functions:
+
+  - ${file(inventory/function.yml)}
+#    The following are a few example events you can configure
+
   - ${file(OrderBills/function.yml)}
   - ${file(Products/function.yml)}
   - ${file(Users/function.yml)}
+
+  - ${file(catalog/function.yml)}
 
 plugins:
   - serverless-offline
