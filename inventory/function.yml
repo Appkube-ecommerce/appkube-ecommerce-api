@@ -1,0 +1,38 @@
+  createInventoryItem:
+    handler: createInventory.createInventoryItem
+    events:
+      - http:
+          path: inventory
+          method: post
+          cors: true
+
+  updateInventoryItem:
+      handler: updateInventory.updateInventoryItem
+      events:
+      - http:
+          path: updateInventory
+          method: PUT
+          cors: true
+
+  getAllInventory:
+      handler: getAllInventory.getAllInventory
+      events:
+      - http:
+          path: getAllInventory
+          method: get
+          cors: true
+
+  getInventoryById:
+    handler: getById.getInventoryById
+    events:
+      - http:
+          method: GET
+          path: /inventory/{inventoryId}
+          cors: true
+  deleteInventoryById:
+    handler: deleteById.deleteInventoryById
+    events:
+      - http:
+          method: DELETE
+          path: /inventory/{inventoryId}
+          cors: true
