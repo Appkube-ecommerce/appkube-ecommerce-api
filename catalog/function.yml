@@ -1,0 +1,7 @@
+
+  createProduct:
+    handler: handler.createProduct
+    events:
+      - http:
+          path: /create
+          method: post
