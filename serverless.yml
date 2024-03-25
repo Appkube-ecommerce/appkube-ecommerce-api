@@ -66,35 +66,17 @@ provider:
 #    - include-me-dir/**
 
 functions:
-  hello:
-    handler: handler.hello
+  
 
-  sendBill:
-    handler: OrderBills/shareBillsOnWhatsaap.handler
-    events:
-      - httpApi:
-          path: /sendBills
-          method: post
+  - ${file(OrderBills/function.yml)}
+  - ${file(Products/function.yml)}
+  - ${file(Users/function.yml)}
 
-  createProduct:
-    handler: products/createProduct.handler
-    events:
-      - httpApi:
-          path: /product
-          method: post
-  updateProduct:
-    handler: products/updateProduct.handler
-    events:
-      - httpApi:
-          path: /product
-          method: put
-  getAllProduct:
-    handler: products/getAllProducts.handler
-    events:
-      - httpApi:
-          path: /product
-          method: get
-#    The following are a few example events you can configure
+    
+
+  
+
+  
   
 plugins:
   - serverless-offline
