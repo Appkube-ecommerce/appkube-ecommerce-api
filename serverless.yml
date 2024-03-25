@@ -95,6 +95,6 @@ functions:
           path: /product
           method: get
 #    The following are a few example events you can configure
-
+  
 plugins:
   - serverless-offline
