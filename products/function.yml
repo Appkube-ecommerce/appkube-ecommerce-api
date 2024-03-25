@@ -1,0 +1,20 @@
+createProduct:
+  handler: products/createProduct.handler
+  events:
+    - http:
+        path: /product
+        method: post
+
+updateProduct:
+  handler: products/updateProduct.handler
+  events:
+    - http:
+        path: /product
+        method: put
+
+getAllProducts:
+  handler: products/getAllProducts.handler
+  events:
+    - http:
+        path: /product  # Corrected path to differentiate from other endpoints
+        method: get      # Corrected method to match the intended action

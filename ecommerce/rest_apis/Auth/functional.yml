@@ -1,2 +1,0 @@
-authorizer:
-  handler: rest_apis/Auth/authorizer.authorizer
