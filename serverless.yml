@@ -35,7 +35,6 @@ provider:
 
 # you can overwrite defaults here
 
-
 # you can add statements to the Lambda function's IAM Role here
 #  iam:
 #    role:
@@ -78,13 +77,23 @@ functions:
           method: post
 
   createProduct:
-    handler: products\createProduct.handler
-    timeout: 60
+    handler: products/createProduct.handler
     events:
       - httpApi:
-          path: /createProduct
+          path: /product
           method: post
-
+  updateProduct:
+    handler: products/updateProduct.handler
+    events:
+      - httpApi:
+          path: /product
+          method: put
+  getAllProduct:
+    handler: products/getAllProducts.handler
+    events:
+      - httpApi:
+          path: /product
+          method: get
 #    The following are a few example events you can configure
 
 plugins:
