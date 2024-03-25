@@ -25,6 +25,14 @@ functions:
       - httpApi:
           path: /product
           method: put
+
+  update1:
+    handler: up.handler
+    timeout: 300
+    events:
+      - httpApi:
+          path: /productup
+          method: put
   delete:
     handler: delete.deleteProduct
     timeout: 300
