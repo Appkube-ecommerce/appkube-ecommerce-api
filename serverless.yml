@@ -66,17 +66,9 @@ provider:
 #    - include-me-dir/**
 
 functions:
-  
-
   - ${file(OrderBills/function.yml)}
   - ${file(Products/function.yml)}
   - ${file(Users/function.yml)}
 
-    
-
-  
-
-  
-  
 plugins:
   - serverless-offline

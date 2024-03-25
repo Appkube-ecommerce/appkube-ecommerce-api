@@ -1,98 +1,130 @@
 const axios = require('axios');
-const AWS = require('aws-sdk');
-const dynamoDB = new AWS.DynamoDB.DocumentClient(); // Instantiate DocumentClient directly
-const { UpdateItemCommand, GetItemCommand } = AWS.DynamoDB.DocumentClient; // Destructure the commands
 require('dotenv').config();
+const AWS = require('aws-sdk');
+const s3 = new AWS.S3();
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
 const FACEBOOK_GRAPH_API_URL = process.env.FACEBOOK_GRAPH_API_URL;
 const CATALOG_ID = process.env.CATALOG_ID;
+const ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 
 module.exports.handler = async (event) => {
   try {
+    // Input validation
     if (!event.body) {
       return {
         statusCode: 400,
         body: JSON.stringify({ message: 'Missing request body' }),
       };
     }
-    const requiredFields = ['productId', 'unit', 'price'];
+
     const productData = JSON.parse(event.body);
 
-    for (const field of requiredFields) {
-      if (!(field in productData)) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ message: `Missing required field: ${field}` }),
-        };
-      }
+    const updateFbData = {
+
     }
 
-    const getProductParams = {
-      TableName: 'Product-hxojpgz675cmbad5uyoeynwh54-dev',
-      Key: {
-        id: productData.productId // No need for { S: ... } if productId is already a string
-      }
-    };
-
-    const getProductResponse = await dynamoDB.get(getProductParams).promise(); // Use `get` method and `promise()`
-
-    if (!getProductResponse.Item) {
+    // Check if ID is provided
+    if (!productData.id) {
       return {
-        statusCode: 404,
-        body: JSON.stringify({ message: 'Product not found' }),
+        statusCode: 400,
+        body: JSON.stringify({ message: 'Missing required field: id' }),
       };
     }
 
+    const tableName = 'Product-hxojpgz675cmbad5uyoeynwh54-dev';
+
+    // Prepare update expression and attribute values for DynamoDB update
+    let updateExpression = 'SET ';
+    const expressionAttributeValues = {};
+
+    // Update the price field if provided
+    if (productData.price) {
+      updateExpression += 'price = :price, ';
+      expressionAttributeValues[':price'] = productData.price;
+      updateFbData.price = productData.price
+    }
+
+    // Update other fields if provided
+    if (productData.name) {
+      updateExpression += 'name = :name, ';
+      expressionAttributeValues[':name'] = productData.name;
+      updateFbData.name = productData.name;
+    }
+
+    if (productData.image) {
+      // Upload image to S3
+      const s3params = {
+        Bucket: 'posdmsservice',
+        Key: productData.name + productData.category, // Adjust this as per your requirement
+        Body: Buffer.from(productData.image, 'base64'),
+        ContentType: 'image/png'
+      };
+      const uploadResult = await s3.upload(s3params).promise();
+      const publicUrl = uploadResult.Location;
+
+      updateExpression += 'image = :image, ';
+      expressionAttributeValues[':image'] = publicUrl;
+      updateFbData.image_url = publicUrl;
+    }
+
+    if (productData.description) {
+      updateExpression += 'description = :description, ';
+      expressionAttributeValues[':description'] = productData.description;
+      updateFbData.description = productData.description;
+    }
+    if (productData.unit) {
+      updateExpression += 'unit = :unit, ';
+      expressionAttributeValues[':unit'] = productData.unit.toUpperCase();
+    }
+    if (productData.category) {
+      updateExpression += 'category = :category, ';
+      expressionAttributeValues[':category'] = productData.category.toUpperCase();
+      updateFbData.category = productData.category.toUpperCase();
+    }
+
+    // Remove the trailing comma and space from the update expression
+    updateExpression = updateExpression.slice(0, -2);
+
+    // Update the last modified timestamp
+    updateExpression += ', updatedAt = :updatedAt';
+    expressionAttributeValues[':updatedAt'] = new Date().toISOString();
+
+    // Update the product in DynamoDB
+    const updateParams = {
+      TableName: tableName,
+      Key: { id: productData.id },
+      UpdateExpression: updateExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ReturnValues: 'ALL_NEW' // Change this if you need different return values
+    };
+
+
+    console.log("dataaaa", updateFbData)
     const product = {
-      "access_token": process.env.FACEBOOK_ACCESS_TOKEN,
-      "requests": [
+      access_token: ACCESS_TOKEN,
+      requests: [
         {
-          "method": "UPDATE",
-          "retailer_id": productData.productId,
-          "data":
-          {
-            "price": productData.price,
-          }
+          method: 'UPDATE',
+          retailer_id: productData.id,
+          data: updateFbData
         }
       ]
     };
 
-    try {
-      const response = await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, product);
+    console.log('Sending update request to Facebook Graph API:', product);
 
-      console.log("###", response);
+    // Make a request to Facebook Graph API
+    await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, product);
 
-      const params = {
-        TableName: 'Product-hxojpgz675cmbad5uyoeynwh54-dev',
-        Key: {
-          id: productData.productId // Assuming productId is a string
-        },
-        UpdateExpression: 'SET #attr1 = :val1, #attr2 = :val2', // Specify the attributes to be updated
-        ExpressionAttributeNames: {
-          '#attr1': 'unit',
-          '#attr2': 'price'
-        },
-        ExpressionAttributeValues: {
-          ':val1': productData.unit, // No need for { S: ... } if unit and price are strings
-          ':val2': productData.price
-        }
-      };
 
-      if (response.status === 200) {
-        await dynamoDB.update(params).promise(); // Use `update` method and `promise()`
-      }
 
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Product updated successfully' }),
-      };
-    } catch (error) {
-      console.error('Failed to update product in database:', error.response ? error.response.data : error.message);
-      return {
-        statusCode: error.response ? error.response.status : 500,
-        body: JSON.stringify({ message: 'Failed to update product in database', error: error.response ? error.response.data : error.message }),
-      };
-    }
+    const updatedProduct = await dynamoDB.update(updateParams).promise();
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'Product updated successfully', updatedProduct }),
+    };
   } catch (error) {
     console.error('Failed to update product:', error);
     return {
