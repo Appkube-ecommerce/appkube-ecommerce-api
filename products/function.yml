@@ -1,0 +1,34 @@
+createProduct:
+  handler: products/createProduct.handler
+  events:
+    - http:
+        path: /product
+        method: post
+
+updateProduct:
+  handler: products/updateProduct.handler
+  events:
+    - http:
+        path: /product
+        method: put
+
+getAllProducts:
+  handler: products/getAllProducts.handler
+  events:
+    - http:
+        path: /product  # Corrected path to differentiate from other endpoints
+        method: get   
+delete:
+  handler: products/delete.deleteProduct
+  timeout: 300
+  events:
+    - http:
+        path: /product
+        method: delete
+getById:
+  handler: products/getById.getProductById
+  timeout: 300
+  events:
+    - http:
+        path: /product/{id}
+        method: get
