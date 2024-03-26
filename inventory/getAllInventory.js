@@ -6,15 +6,15 @@ const dynamoDB = new DynamoDBClient({
     endpoint: process.env.ENDPOINT
 });
 
-module.exports.getAllInventory = async (event) => {
+module.exports.getAllInventory = async () => {
     try {
-        // Define the params for the Scan operation
-        const params = {
-            TableName: 'Inventory'
-        };
+        // Define the ScanCommand to scan the entire table
+        const command = new ScanCommand({
+            TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev'
+        });
 
-        // Perform the Scan operation to get all inventory items
-        const data = await dynamoDB.send(new ScanCommand(params));
+        // Perform the ScanCommand to get all inventory items
+        const data = await dynamoDB.send(command);
 
         // Return the list of inventory items
         return {
