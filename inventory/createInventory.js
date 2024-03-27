@@ -1,14 +1,22 @@
+const { DynamoDBClient, PutItemCommand, GetItemCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
+
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 const AWS = require('aws-sdk');
 
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const dynamoDB = new DynamoDBClient({
+    region: 'localhost',
+    endpoint: 'http://localhost:8000'
+});
+
 
 module.exports.handler = async (event) => {
     try {
         const body = JSON.parse(event.body);
         const productId = body.productId;
         const availableQuantity = body.availableQuantity;
+        const unit = body.unit;
+
 
         // Validate input
         if (!productId || !availableQuantity || typeof availableQuantity !== 'number') {
@@ -18,10 +26,11 @@ module.exports.handler = async (event) => {
         // Check if productId exists in the product table
         const getProductParams = {
             TableName: 'Product-hxojpgz675cmbad5uyoeynwh54-dev',
-            Key: { id: productId }
+            Key: { id: { S: productId } }
         };
 
-        const productData = await dynamoDB.get(getProductParams).promise();
+        const productData = await dynamoDB.send(new GetItemCommand(getProductParams));
+
 
         // If productId does not exist in the product table, return an error
         if (!productData.Item) {
@@ -35,9 +44,10 @@ module.exports.handler = async (event) => {
         const getInventoryParams = {
             TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
             FilterExpression: 'productId = :productId',
-            ExpressionAttributeValues: { ':productId': productId }
+            ExpressionAttributeValues: { ':productId': { S: productId } }
         };
-        const inventoryData = await dynamoDB.scan(getInventoryParams).promise();
+        const inventoryData = await dynamoDB.send(new ScanCommand(getInventoryParams));
+
 
         // If productId already exists in the inventory table, return an error
         if (inventoryData.Items.length > 0) {
@@ -54,15 +64,17 @@ module.exports.handler = async (event) => {
         const putParams = {
             TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
             Item: {
-                id: inventoryId,
-                productId: productId,
-                availableQuantity: availableQuantity
+                inventoryId: { S: inventoryId },
+                productId: { S: productId },
+                availableQuantity: { N: availableQuantity.toString() },
+                unit: { S: unit }
+
             },
             // ConditionExpression to check if productId doesn't already exist in the Inventory table
             ConditionExpression: 'attribute_not_exists(productId)'
         };
 
-        await dynamoDB.put(putParams).promise();
+        await dynamoDB.send(new PutItemCommand(putParams));
 
         return {
             statusCode: 200,

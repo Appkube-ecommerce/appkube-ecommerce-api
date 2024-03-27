@@ -13,7 +13,7 @@ module.exports.getInventoryById = async (event) => {
 
         // Define the params for the GetItem operation
         const params = {
-            TableName: 'Inventory',
+            TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
                 'inventoryId': { S: inventoryId }
             }

@@ -8,16 +8,16 @@ const dynamoDB = new DynamoDBClient({
 
 module.exports.updateInventoryItem = async (event) => {
     try {
-        const { inventoryId, quantity } = JSON.parse(event.body);
+        const { inventoryId, availableQuantity, unit } = JSON.parse(event.body);
 
         // Validate input
-        if (!inventoryId || !quantity || typeof quantity !== 'number') {
-            throw new Error('Invalid input. "inventoryId" and "quantity" are required and "quantity" must be a number.');
+        if (!inventoryId || !availableQuantity || typeof availableQuantity !== 'number' || !unit) {
+            throw new Error('Invalid input. "inventoryId", "availableQuantity", and "unit" are required and "quantity" must be a number.');
         }
 
         // Check if the inventory item exists
         const getItemParams = {
-            TableName: 'Inventory',
+            TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
                 inventoryId: { S: inventoryId }
             }
@@ -29,15 +29,20 @@ module.exports.updateInventoryItem = async (event) => {
             throw new Error('Inventory item not found.');
         }
 
-        // Update the quantity of the existing item
+        // Update the quantity and unit of the existing item
         const updateParams = {
-            TableName: 'Inventory',
+            TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
                 inventoryId: { S: inventoryId }
             },
-            UpdateExpression: 'SET quantity = :quantity',
+            UpdateExpression: 'SET #q = :availableQuantity, #u = :unit',
+            ExpressionAttributeNames: {
+                '#q': 'availableQuantity',
+                '#u': 'unit'
+            },
             ExpressionAttributeValues: {
-                ':quantity': { N: quantity.toString() }
+                ':availableQuantity': { N: availableQuantity.toString() },
+                ':unit': { S: unit }
             }
         };
 
