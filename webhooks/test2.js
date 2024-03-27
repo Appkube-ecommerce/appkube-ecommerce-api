@@ -1,86 +1,117 @@
 const axios = require('axios');
 const { Pool } = require('pg');
-const express = require('express');
-const app = express();
 
-const pool  = new Pool({
+// Configure PostgreSQL connection pool with your database credentials
+const pool = new Pool({
     user: '',
     password: '',
     host: '', // e.g., 'localhost' or 'your_database.amazonaws.com'
     database: '',
-    port: , // Default PostgreSQL port
-});
+    port: , // Default PostgreSQL 
+})
 
-// Function to send address message and await user's response
-module.exports.getUserAddress = async (toNumber, whatsappToken) => {
+async function sendAddressMessageWithSavedAddresses(toNumber, whatsappToken, userDetails) {
     try {
+        // if (!userDetails || !userDetails.name) {
+        //     throw new Error('Invalid user address details');
+        // }
+
+        // Construct message data with saved address details
+
+const messageData = {
+    "messaging_product": "whatsapp",
+    "recipient_type": "individual",
+    "to": toNumber,
+    "type": "interactive",
+    "interactive": {
+        "type": "address_message",
+        "body": {
+            "text": "Thanks for your order! Tell us what address you’d like this order delivered to."
+        },
+        "action": {
+            "name": "address_message",
+            "parameters": {
+                "country": "IN",
+                "saved_addresses": [
+                    {
+                        "id": "address1",
+                        "value": {
+                            // Log user details inside the value object
+                            ...console.log("****User details:", userDetails.values),
+                            "name": userDetails.values.name,
+                            "phone_number": userDetails.values.phone_number,
+                            "in_pin_code": userDetails.values.in_pin_code,
+                            "floor_number": userDetails.values.floor_number,
+                            "building_name": userDetails.values.building_name,
+                            "address": userDetails.values.address,
+                            "landmark_area": userDetails.values.landmark_area,
+                            "city": userDetails.values.city
+                        }
+                    }
+                ]
+            }
+        }
+    }
+};
+
+
+        
+
+        // Set up headers for the HTTP request
         const myHeaders = {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + whatsappToken
         };
- 
-        const addressMessageData = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": toNumber,
-            "type": "interactive",
-            "interactive": {
-                "type": "address_message",
-                "body": {
-                    "text": "Thanks for your order! Tell us what address you’d like this order delivered to."
-                },
-                "action": {
-                    "name": "address_message",
-                    "parameters": {
-                        "country": "IN"
-                    }
-                }
-            }
-        };
- 
-        console.log("Sending address message to number:", toNumber); // Log the number before sending
+
+        // Set up request options
         const requestOptions = {
             method: 'POST',
             headers: myHeaders,
-            data: addressMessageData,
+            data: messageData,
             redirect: 'follow',
         };
- 
-        const response = await axios.post("https://graph.facebook.com/v19.0//messages", addressMessageData, requestOptions);
+
+        console.log("Sending address message with saved addresses to number:", toNumber);
+
+        // Send the address message with saved addresses
+        const response = await axios.post("https://graph.facebook.com/v19.0//messages", messageData, requestOptions);
         const result = response.data;
-        console.log("Address message sent successfully:", result); // Log the success after sending
+
+        console.log("Address message with saved addresses sent successfully:", result);
+
         return result;
     } catch (error) {
-        console.error('Error sending WhatsApp message:', error);
+        console.error('Error sending address message with saved addresses:', error);
         throw error;
     }
-};
+}
 
-// Function to receive user's response from WhatsAp
-
-// Function to store user's response in the database
-module.exports.storeUserResponse = async (phone_number_id, message) => {
+async function getUserAddressFromDatabase(senderId) {
     try {
-        // Connect to the database
+        // Query to fetch user address details from the database based on senderId
+        const query = {
+            text: 'SELECT * FROM users WHERE phone_number = $1',
+            values: [senderId],
+        };
+
+        // Connect to the database and execute the query
         const client = await pool.connect();
+        const { rows } = await client.query(query);
+        client.release();
 
-        // Check if the user already exists in the database
-        const existingRecord = await client.query('SELECT phone_number FROM users WHERE phone_number = $1', [phone_number_id]);
-
-        if (existingRecord.rows.length === 0) {
-            // Insert a new record if the user doesn't exist
-            await client.query('INSERT INTO users(phone_number, details) VALUES($1, $2)', [phone_number_id, message]);
-        } else {
-            // Update existing record with user's new response
-            await client.query('UPDATE users SET details = $1 WHERE phone_number = $2', [message, phone_number_id]);
+        if (rows.length === 0) {
+            return null; // User not found in the database
         }
 
-        // Release the database connection
-        client.release();
+        // Extract user address details from the database row
+        const useruserDetails = rows[0].details;
+        return useruserDetails;
     } catch (error) {
-        console.error('Error storing user response:', error);
+        console.error('Error fetching user address details from the database:', error);
         throw error;
     }
+}
+module.exports = {
+    sendAddressMessageWithSavedAddresses,
+    getUserAddressFromDatabase,
 };
-
- 
