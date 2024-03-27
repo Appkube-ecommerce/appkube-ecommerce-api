@@ -6,48 +6,40 @@ const dynamoDB = new DynamoDBClient({
     endpoint: process.env.ENDPOINT
 });
 
-module.exports.getByOrderId = async (event) => {
+module.exports.getById = async (event) => {
     try {
-        const orderId = event.pathParameters.orderId;
-        console.log("Order ID:", orderId);
+        // Extract the order ID from the path parameters
+        const OrderId = event.pathParameters.OrderId;
 
+        // Define the params for the GetItem operation
         const params = {
-            TableName: 'Order',
+            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
-                'orderId': { S: orderId }
+                'OrderId': { S: OrderId }
             }
         };
 
+        // Perform the GetItem operation to retrieve the item by ID
         const { Item } = await dynamoDB.send(new GetItemCommand(params));
 
+        // Check if the item exists
         if (!Item) {
-            throw new Error('Order not found');
+            return {
+                statusCode: 404,
+                body: JSON.stringify({ message: 'Order not found' }),
+            };
         }
 
-        const order = {
-            orderId: Item.orderId.S,
-            items: Item.items.L.map(item => ({
-                productId: item.M.productId.S,
-                customerId: item.M.customerId.S,
-                quantity: parseInt(item.M.quantity.N),
-                price: parseFloat(item.M.price.N)
-            })),
-            paymentMethod: Item.paymentMethod.S,
-            status: Item.status.S,
-            total: Item.total.S // Assuming total is defined as a string
-        };
-
-        console.log("Retrieved Order:", order);
-
+        // Return the order
         return {
             statusCode: 200,
-            body: JSON.stringify({ order }),
+            body: JSON.stringify({ order: Item }),
         };
     } catch (error) {
-        console.error('Error retrieving order by ID:', error);
+        console.error('Error getting order by ID:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to retrieve order', error: error.message }),
+            body: JSON.stringify({ message: 'Failed to get order by ID', error: error.message }),
         };
     }
 };

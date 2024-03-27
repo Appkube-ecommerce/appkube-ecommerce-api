@@ -13,7 +13,7 @@ module.exports.deleteByOrderId = async (event) => {
 
         // Define parameters for the deleteItem operation
         const deleteParams = {
-            TableName: 'Order',
+            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
                 'orderId': { S: orderId }
             }

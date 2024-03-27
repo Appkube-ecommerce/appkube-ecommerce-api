@@ -1,22 +1,11 @@
-service: order
-
-frameworkVersion: "3"
-
-plugins:
- - serverless-offline
-
-provider:
-  name: aws
-  runtime: nodejs18.x
-
-functions:
   createOrder:
     handler: createOrder.createOrder
     timeout: 600
     events:
-      - http:
-          method: POST
-          path: createorder
+       - http:
+           method: POST
+           path: createorder
+
 
   getallOrder:
     handler: getAllOrder.getAllOrders
@@ -26,13 +15,13 @@ functions:
           method: get
           path: getallOrder
 
-  getByOrderId:
-    handler: getById.getByOrderId
+  getById:
+    handler: getById.getById
     timeout: 600
     events: 
       - http:
           method: get
-          path: getbyid/{orderId}   
+          path: getbyid/{OrderId}   
 
   deleteByOrderId:
     handler: deleteById.deleteByOrderId
@@ -40,7 +29,7 @@ functions:
     events:
       - http:
           method:  delete
-          path: deletebyid/{orderId}
+          path: deletebyid/{OrderId}
 
   update:
     handler: updateOrder.updateOrder
@@ -48,6 +37,6 @@ functions:
     events: 
       - http: 
           method: put
-          path: update/{orderId}
+          path: update/{OrderId}
 
  

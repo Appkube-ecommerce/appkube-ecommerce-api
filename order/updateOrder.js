@@ -21,7 +21,7 @@ module.exports.updateOrder = async (event) => {
 
         // Check if the order exists
         const getOrderParams = {
-            TableName: 'Order',
+            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: { 'orderId': { S: orderId } }
         };
 
@@ -49,7 +49,7 @@ module.exports.updateOrder = async (event) => {
 
         // Update order in the database
         const updateOrderParams = {
-            TableName: 'Order',
+            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: { 'orderId': { S: orderId } },
             UpdateExpression: 'SET #items = :items, paymentMethod = :paymentMethod, #status = :status, #total = :total',
             ExpressionAttributeNames: {
