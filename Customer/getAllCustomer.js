@@ -1,24 +1,23 @@
+require('dotenv').config(); // Load environment variables from .env file
+
 const AWS = require('aws-sdk');
-
-AWS.config.update({
-  region: 'localhost',
-  endpoint: 'http://localhost:8000',
-});
-
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.getAllCustomer = async (event) => {
   try {
+    // Fetch the table name from the environment variable
+    const tableName = process.env.DYNAMODB_TABLE_NAME;
+
     const params = {
-      TableName: 'Customer'
+      TableName: tableName
     };
 
     const result = await dynamodb.scan(params).promise();
-    const customer = result.Items;
+    const customers = result.Items;
 
     return {
       statusCode: 200,
-      body: JSON.stringify(customer)
+      body: JSON.stringify(customers)
     };
   } catch (error) {
     return {
