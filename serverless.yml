@@ -73,6 +73,9 @@ functions:
   - ${file(OrderBills/function.yml)}
   - ${file(Products/function.yml)}
   - ${file(Users/function.yml)}
+  - ${file(Login/function.yml)}
+  - ${file(Customer/function.yml)}
+
 
   - ${file(catalog/function.yml)}
 

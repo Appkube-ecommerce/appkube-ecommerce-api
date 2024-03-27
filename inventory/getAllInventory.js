@@ -1,10 +1,10 @@
-const { DynamoDBClient, ScanCommand } = require('@aws-sdk/client-dynamodb');
+// const { DynamoDBClient, ScanCommand } = require('@aws-sdk/client-dynamodb');
 require('dotenv').config();
+const AWS = require('aws-sdk');
 
-const dynamoDB = new DynamoDBClient({
-    region: process.env.REGION,
-    endpoint: process.env.ENDPOINT
-});
+
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
+
 
 module.exports.getAllInventory = async () => {
     try {
@@ -15,6 +15,7 @@ module.exports.getAllInventory = async () => {
 
         // Perform the ScanCommand to get all inventory items
         const data = await dynamoDB.send(command);
+
 
         // Return the list of inventory items
         return {

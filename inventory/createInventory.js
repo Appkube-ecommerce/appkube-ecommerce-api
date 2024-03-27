@@ -1,11 +1,14 @@
 const { DynamoDBClient, PutItemCommand, GetItemCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
+
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
+const AWS = require('aws-sdk');
 
 const dynamoDB = new DynamoDBClient({
     region: 'localhost',
     endpoint: 'http://localhost:8000'
 });
+
 
 module.exports.handler = async (event) => {
     try {
@@ -13,6 +16,7 @@ module.exports.handler = async (event) => {
         const productId = body.productId;
         const availableQuantity = body.availableQuantity;
         const unit = body.unit;
+
 
         // Validate input
         if (!productId || !availableQuantity || typeof availableQuantity !== 'number') {
@@ -26,6 +30,7 @@ module.exports.handler = async (event) => {
         };
 
         const productData = await dynamoDB.send(new GetItemCommand(getProductParams));
+
 
         // If productId does not exist in the product table, return an error
         if (!productData.Item) {
@@ -42,6 +47,7 @@ module.exports.handler = async (event) => {
             ExpressionAttributeValues: { ':productId': { S: productId } }
         };
         const inventoryData = await dynamoDB.send(new ScanCommand(getInventoryParams));
+
 
         // If productId already exists in the inventory table, return an error
         if (inventoryData.Items.length > 0) {
@@ -62,6 +68,7 @@ module.exports.handler = async (event) => {
                 productId: { S: productId },
                 availableQuantity: { N: availableQuantity.toString() },
                 unit: { S: unit }
+
             },
             // ConditionExpression to check if productId doesn't already exist in the Inventory table
             ConditionExpression: 'attribute_not_exists(productId)'
