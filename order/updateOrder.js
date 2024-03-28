@@ -1,5 +1,5 @@
-const { DynamoDBClient, PutItemCommand, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
-const { v4: uuidv4 } = require('uuid');
+const { DynamoDBClient, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+const { marshall } = require('@aws-sdk/util-dynamodb');
 require('dotenv').config();
 
 const dynamoDB = new DynamoDBClient({
@@ -7,78 +7,70 @@ const dynamoDB = new DynamoDBClient({
     endpoint: process.env.ENDPOINT
 });
 
+const tableName = 'Order-hxojpgz675cmbad5uyoeynwh54-dev';
+
 module.exports.updateOrder = async (event) => {
     try {
-        const requestBody = JSON.parse(event.body);
-        console.log("Request Body:", requestBody);
+        const body = JSON.parse(event.body);
+        const orderId = event.pathParameters.orderId;
+        const { items, paymentMethod, status } = body;
 
-        const { orderId, items, paymentMethod, status, total } = requestBody;
-        console.log("Order ID:", orderId);
-        console.log("Items:", items);
-        console.log("Payment Method:", paymentMethod);
-        console.log("Status:", status);
-        console.log("Total:", total);
-
-        // Check if the order exists
-        const getOrderParams = {
-            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
-            Key: { 'orderId': { S: orderId } }
-        };
-
-        const orderResult = await dynamoDB.send(new GetItemCommand(getOrderParams));
-
-        if (!orderResult.Item) {
-            throw new Error('Order not found');
+        // Validate input
+        if (!Array.isArray(items) || items.length === 0 || !paymentMethod || !status) {
+            throw new Error('Invalid input. "items" must be a non-empty array, "paymentMethod" and "status" are required.');
         }
 
-        // Prepare updated order item
-        const updatedOrderItem = {
-            orderId: { S: orderId },
-            items: { L: items.map(item => ({
-                M: {
-                    productId: { S: item.productId },
-                    customerId: { S: item.customerId },
-                    quantity: { N: item.quantity.toString() },
-                    price: { N: item.price.toString() }
-                }
-            }))},
-            paymentMethod: { S: paymentMethod },
-            status: { S: status },
-            total: { N: total.toString() } // Assuming total is a number
-        };
+        // Calculate total price of items
+        const totalPrice = calculateTotalPrice(items);
 
-        // Update order in the database
-        const updateOrderParams = {
-            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
-            Key: { 'orderId': { S: orderId } },
-            UpdateExpression: 'SET #items = :items, paymentMethod = :paymentMethod, #status = :status, #total = :total',
-            ExpressionAttributeNames: {
-                '#items': 'items',
-                '#status': 'status',
-                '#total': 'total' // Use an alias for the reserved keyword "total"
-            },
-            ExpressionAttributeValues: {
-                ':items': updatedOrderItem.items,
-                ':paymentMethod': updatedOrderItem.paymentMethod,
-                ':status': updatedOrderItem.status,
-                ':total': updatedOrderItem.total
-            },
+        // Prepare update expression and attribute values
+        let updateExpression = 'SET #items = :items, PaymentMethod = :paymentMethod, #status = :status, TotalPrice = :totalPrice';
+        const expressionAttributeNames = {
+            '#items': 'Items',
+            '#status': 'Status'
+        };
+        const expressionAttributeValues = marshall({
+            ':items': formatItems(items),
+            ':paymentMethod': paymentMethod,
+            ':status': status,
+            ':totalPrice': totalPrice.toString()
+        });
+
+        // Update order item in DynamoDB using UpdateItemCommand
+        const updateParams = {
+            TableName: tableName,
+            Key: marshall({ OrderId: orderId }), // Marshall the key
+            UpdateExpression: updateExpression,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ExpressionAttributeValues: expressionAttributeValues, // Marshall the updated order item
             ReturnValues: 'ALL_NEW'
         };
 
-        const updatedOrderResult = await dynamoDB.send(new UpdateItemCommand(updateOrderParams));
-
-        console.log("Updated Order:", updatedOrderResult);
+        const updatedOrderResult = await dynamoDB.send(new UpdateItemCommand(updateParams));
 
         return {
             statusCode: 200,
             body: JSON.stringify({ message: 'Order updated successfully', updatedOrder: updatedOrderResult.Attributes }),
         };
     } catch (error) {
-        console.error('Error updating order:', error);
+        console.error('Error:', error.message);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to update order', error: error.message }),
+            body: JSON.stringify({ message: 'Failed to process request', error: error.message }),
         };
     }
 };
+
+// Function to calculate total price of items
+function calculateTotalPrice(items) {
+    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+}
+
+// Function to format items array for DynamoDB
+function formatItems(items) {
+    return items.map(item => ({
+        ProductId: item.productId,
+        Quantity: item.quantity,
+        Price: item.price
+    }));
+}

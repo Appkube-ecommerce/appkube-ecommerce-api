@@ -9,13 +9,13 @@ const dynamoDB = new DynamoDBClient({
 module.exports.deleteByOrderId = async (event) => {
     try {
         // Extract orderId from path parameters
-        const orderId = event.pathParameters.orderId;
+        const orderId = event.pathParameters.OrderId;
 
         // Define parameters for the deleteItem operation
         const deleteParams = {
             TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
-                'orderId': { S: orderId }
+                'OrderId': { S: orderId }
             }
         };
 

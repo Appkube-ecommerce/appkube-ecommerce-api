@@ -1,4 +1,5 @@
 const { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { marshall } = require('@aws-sdk/util-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
@@ -7,72 +8,63 @@ const dynamoDB = new DynamoDBClient({
     endpoint: process.env.ENDPOINT
 });
 
+const tableName = 'Order-hxojpgz675cmbad5uyoeynwh54-dev';
+
 module.exports.createOrder = async (event) => {
     try {
-        // Parse the request body to extract order details
-        const requestBody = JSON.parse(event.body);
-        const { items, paymentMethod, status, total } = requestBody;
+        const body = JSON.parse(event.body);
+        const { items, paymentMethod, status } = body;
 
-        // Ensure items array is defined and not empty
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            throw new Error('Items array is missing or empty');
+        // Validate input
+        if (!Array.isArray(items) || items.length === 0 || !paymentMethod || !status) {
+            throw new Error('Invalid input. "items" must be a non-empty array, "paymentMethod" and "status" are required.');
         }
 
-        // Ensure each item in the array has the required properties
-        for (const item of items) {
-            if (!item || typeof item !== 'object' || !item.productId || !item.quantity) {
-                throw new Error('Each item must be an object with productId and quantity properties');
-            }
-        }
-
-        // Generate a unique order ID
         const orderId = uuidv4();
+        const totalPrice = calculateTotalPrice(items);
 
-        // Prepare the order item
+        // Prepare order item
         const orderItem = {
-            OrderId: orderId,
-            items: items.map(item => ({
-                productId: item.productId,
-                quantity: item.quantity
-            })),
-            paymentMethod,
-            status,
-            total
+            OrderId:  orderId ,
+            Items: { L: formatItems(items) },
+            PaymentMethod: { S: paymentMethod },
+            Status: { S: status },
+            TotalPrice: { N: totalPrice.toString() }
         };
 
-        console.log("## Order Item:", orderItem);
-
-
-        const params = {
-            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
-            Item: {
-                'OrderId': { S: orderItem.OrderId }, // Partition key attribute
-                'items': { L: orderItem.items.map(item => ({ M: item })) }, // Assuming items is a list (L) of map (M)
-                'paymentMethod': { S: orderItem.paymentMethod }, // Assuming paymentMethod is of type string (S)
-                'status': { S: orderItem.status }, // Assuming status is of type string (S)
-                'total': { N: orderItem.total.toString() } // Assuming total is of type number (N)
-            }
+        // Save order item to DynamoDB using PutItemCommand
+        const putParams = {
+            TableName: tableName,
+            Item: marshall(orderItem) // Marshall the orderItem
         };
-        
-        
 
-        console.log("## PutItemCommand Params:", params);
+        await dynamoDB.send(new PutItemCommand(putParams));
 
-        // Perform the PutItem operation to create the order
-        const result = await dynamoDB.send(new PutItemCommand(params));
-
-        console.log("## PutItemCommand Result:", result);
-
-        // Return success response
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: 'Order created successfully', orderId }),
+            body: JSON.stringify({ message: 'Order created successfully', orderId: orderId }),
         };
     } catch (error) {
-        console.error('Error creating order:', error);
+        console.error('Error:', error.message);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to create order', error: error.message }),
+            body: JSON.stringify({ message: 'Failed to process request', error: error.message }),
         };
     }
 };
+
+// Calculate total price of items
+function calculateTotalPrice(items) {
+    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+}
+
+// Format items array for DynamoDB
+function formatItems(items) {
+    return items.map(item => ({
+        M: {
+            ProductId: { S: item.productId },
+            Quantity: { N: item.quantity.toString() },
+            Price: { N: item.price.toString() }
+        }
+    }));
+}

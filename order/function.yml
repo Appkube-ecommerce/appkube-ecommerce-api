@@ -1,5 +1,5 @@
   createOrder:
-    handler: createOrder.createOrder
+    handler: order/createOrder.createOrder
     timeout: 600
     events:
        - http:
@@ -8,7 +8,7 @@
 
 
   getallOrder:
-    handler: getAllOrder.getAllOrders
+    handler: order/getAllOrder.getAllOrders
     timeout: 600
     events:
       - http:
@@ -16,7 +16,7 @@
           path: getallOrder
 
   getById:
-    handler: getById.getById
+    handler: order/getById.getById
     timeout: 600
     events: 
       - http:
@@ -24,7 +24,7 @@
           path: getbyid/{OrderId}   
 
   deleteByOrderId:
-    handler: deleteById.deleteByOrderId
+    handler: order/deleteById.deleteByOrderId
     timeout: 600
     events:
       - http:
@@ -32,11 +32,11 @@
           path: deletebyid/{OrderId}
 
   update:
-    handler: updateOrder.updateOrder
+    handler: order/updateOrder.updateOrder
     timeout: 600
     events: 
       - http: 
           method: put
-          path: update/{OrderId}
+          path: update/{orderId}
 
  
