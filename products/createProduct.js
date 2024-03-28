@@ -52,8 +52,8 @@ module.exports.handler = async (event) => {
             price: productData.price,
             image: publicUrl,
             description: productData.description,
-            unit: productData.unit,
-            category: productData.category,
+            unit: productData.unit.toUpperCase(),
+            category: productData.category.toUpperCase(),
             createdAt: new Date().toISOString(),
             _version: 1,
             _lastChangedAt: Date.now(),
@@ -66,7 +66,7 @@ module.exports.handler = async (event) => {
                 retailer_id: newProduct.id,
                 availability: productData.availability,
                 brand: productData.brand,
-                category: newProduct.category,
+                category: newProduct.category.toUpperCase(),
                 description: newProduct.description,
                 image_url: newProduct.image,
                 name: newProduct.name,
@@ -75,13 +75,13 @@ module.exports.handler = async (event) => {
                 url: newProduct.image
             });
 
-          
+
 
             const putParams = {
                 TableName: tableName,
                 Item: newProduct,
             };
-            if(response.status === 200){
+            if (response.status === 200) {
 
                 await dynamoDB.put(putParams).promise();
             }
