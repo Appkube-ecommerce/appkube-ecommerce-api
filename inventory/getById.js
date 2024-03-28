@@ -1,26 +1,24 @@
 const { DynamoDBClient, GetItemCommand } = require('@aws-sdk/client-dynamodb');
+const { unmarshall } = require('@aws-sdk/util-dynamodb');
 require('dotenv').config();
 
 const dynamoDB = new DynamoDBClient({
-    region: process.env.REGION,
-    endpoint: process.env.ENDPOINT
+    region: process.env.REGION
 });
 
 module.exports.getInventoryById = async (event) => {
     try {
-        // Extract the inventory ID from the path parameters
-        const inventoryId = event.pathParameters.inventoryId;
+        // Get the inventory ID from the path parameters
+        const inventoryId = event.pathParameters.id;
 
-        // Define the params for the GetItem operation
-        const params = {
+        // Define the GetItemCommand to get the item by ID
+        const command = new GetItemCommand({
             TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
-            Key: {
-                'inventoryId': { S: inventoryId }
-            }
-        };
+            Key: { id: { S: inventoryId } }
+        });
 
-        // Perform the GetItem operation to retrieve the item by ID
-        const data = await dynamoDB.send(new GetItemCommand(params));
+        // Perform the GetItemCommand to get the inventory item
+        const data = await dynamoDB.send(command);
 
         // Check if the item exists
         if (!data.Item) {
@@ -30,16 +28,27 @@ module.exports.getInventoryById = async (event) => {
             };
         }
 
-        // Return the inventory item
+        // Unmarshall the item to convert DynamoDB format to JSON
+        const item = unmarshall(data.Item);
+
+        // Format the item according to the desired format
+        const formattedItem = {
+            unit: item.unit,
+            availableQuantity: item.availableQuantity,
+            id: item.id,
+            productId: item.productId
+        };
+
+        // Return the formatted inventory item
         return {
             statusCode: 200,
-            body: JSON.stringify(data.Item),
+            body: JSON.stringify(formattedItem),
         };
     } catch (error) {
-        console.error('Error getting inventory item by ID:', error);
+        console.error('Error getting inventory item:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to get inventory item by ID', error: error.message }),
+            body: JSON.stringify({ message: 'Failed to get inventory item', error: error.message }),
         };
     }
 };

@@ -2,20 +2,19 @@ const { DynamoDBClient, DeleteItemCommand } = require('@aws-sdk/client-dynamodb'
 require('dotenv').config();
 
 const dynamoDB = new DynamoDBClient({
-    region: process.env.REGION,
-    endpoint: process.env.ENDPOINT
+    region: process.env.REGION
 });
 
 module.exports.deleteInventoryById = async (event) => {
     try {
         // Extract the inventory ID from the path parameters
-        const inventoryId = event.pathParameters.inventoryId;
+        const id = event.pathParameters.id;
 
         // Define the params for the DeleteItem operation
         const params = {
             TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
-                'inventoryId': { S: inventoryId }
+                'id': { S: id }
             }
         };
 
