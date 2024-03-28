@@ -1,14 +1,11 @@
 const { DynamoDBClient, PutItemCommand, GetItemCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
-
+const { marshall } = require('@aws-sdk/util-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
-const AWS = require('aws-sdk');
 
 const dynamoDB = new DynamoDBClient({
-    region: 'localhost',
-    endpoint: 'http://localhost:8000'
+    region: process.env.REGION
 });
-
 
 module.exports.handler = async (event) => {
     try {
@@ -17,10 +14,9 @@ module.exports.handler = async (event) => {
         const availableQuantity = body.availableQuantity;
         const unit = body.unit;
 
-
         // Validate input
-        if (!productId || !availableQuantity || typeof availableQuantity !== 'number') {
-            throw new Error('Invalid input. "productId" and "availableQuantity" are required and "availableQuantity" must be a number.');
+        if (!productId || !availableQuantity || typeof availableQuantity !== 'number' || !unit || typeof unit !== 'string' || unit.trim() === '') {
+            throw new Error('Invalid input. "productId" and "availableQuantity" are required and "availableQuantity" must be a number. "unit" must be a non-empty string.');
         }
 
         // Check if productId exists in the product table
@@ -30,7 +26,6 @@ module.exports.handler = async (event) => {
         };
 
         const productData = await dynamoDB.send(new GetItemCommand(getProductParams));
-
 
         // If productId does not exist in the product table, return an error
         if (!productData.Item) {
@@ -48,38 +43,36 @@ module.exports.handler = async (event) => {
         };
         const inventoryData = await dynamoDB.send(new ScanCommand(getInventoryParams));
 
+        // If inventoryData.Items is undefined or empty, continue without error
+        if (!inventoryData.Items || inventoryData.Items.length === 0) {
+            // Generate a unique ID for the inventory item
+            const id = uuidv4();
 
-        // If productId already exists in the inventory table, return an error
-        if (inventoryData.Items.length > 0) {
+            // Save inventory item to DynamoDB
+            const putParams = {
+                TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
+                Item: marshall({
+                    id: id,
+                    productId: productId,
+                    availableQuantity: availableQuantity.toString(), // convert to string
+                    unit: unit
+                }),
+                // ConditionExpression to check if productId doesn't already exist in the Inventory table
+                ConditionExpression: 'attribute_not_exists(productId)'
+            };
+
+            await dynamoDB.send(new PutItemCommand(putParams));
+
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ message: 'Item added in Inventory successfully' }),
+            };
+        } else {
             return {
                 statusCode: 400,
                 body: JSON.stringify({ message: 'Product already exists in inventory' }),
             };
         }
-
-        // Generate a unique ID for the inventory item
-        const inventoryId = uuidv4();
-
-        // Save inventory item to DynamoDB
-        const putParams = {
-            TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
-            Item: {
-                inventoryId: { S: inventoryId },
-                productId: { S: productId },
-                availableQuantity: { N: availableQuantity.toString() },
-                unit: { S: unit }
-
-            },
-            // ConditionExpression to check if productId doesn't already exist in the Inventory table
-            ConditionExpression: 'attribute_not_exists(productId)'
-        };
-
-        await dynamoDB.send(new PutItemCommand(putParams));
-
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: 'Item added in Inventory successfully' }),
-        };
     } catch (error) {
         console.error('Error:', error.message);
         return {
