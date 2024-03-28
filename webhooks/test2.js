@@ -111,7 +111,31 @@ async function getUserAddressFromDatabase(senderId) {
         throw error;
     }
 }
+ async function storeUserResponse(phone_number_id, message) {
+    try {
+        // Connect to the database
+        const client = await pool.connect();
+
+        // Check if the user already exists in the database
+        const existingRecord = await client.query('SELECT phone_number FROM users WHERE phone_number = $1', [phone_number_id]);
+
+        if (existingRecord.rows.length === 0) {
+            // Insert a new record if the user doesn't exist
+            await client.query('INSERT INTO users(phone_number, details) VALUES($1, $2)', [phone_number_id, message]);
+        } else {
+            // Update existing record with user's new response
+            await client.query('UPDATE users SET details = $1 WHERE phone_number = $2', [message, phone_number_id]);
+        }
+
+        // Release the database connection
+        client.release();
+    } catch (error) {
+        console.error('Error storing user response:', error);
+        throw error;
+    }
+};
 module.exports = {
     sendAddressMessageWithSavedAddresses,
     getUserAddressFromDatabase,
+    storeUserResponse
 };
