@@ -75,9 +75,12 @@ functions:
   - ${file(Users/function.yml)}
   - ${file(Login/function.yml)}
   - ${file(Customer/function.yml)}
-
-
+  - ${file(Order_Apis/function.yml)}
   - ${file(catalog/function.yml)}
+
+
+  
+  
 
 plugins:
   - serverless-offline
