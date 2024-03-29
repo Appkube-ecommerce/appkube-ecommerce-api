@@ -1,25 +1,30 @@
 const { DynamoDBClient, DeleteItemCommand } = require('@aws-sdk/client-dynamodb');
+const { unmarshall } = require('@aws-sdk/util-dynamodb');
 require('dotenv').config();
 
+// Create DynamoDB client
 const dynamoDB = new DynamoDBClient({
     region: process.env.REGION,
     endpoint: process.env.ENDPOINT
 });
 
-module.exports.deleteByOrderId = async (event) => {
+const tableName = process.env.ORDER_TABLE_NAME;
+
+// Handler function to delete an order by ID
+module.exports.deleteOrderById = async (event) => {
     try {
         // Extract orderId from path parameters
-        const orderId = event.pathParameters.OrderId;
+        const orderId = event.pathParameters.id;
 
-        // Define parameters for the deleteItem operation
+        // Prepare parameters for DeleteItemCommand
         const deleteParams = {
-            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev',
+            TableName: tableName,
             Key: {
-                'OrderId': { S: orderId }
+                id: { S: orderId } // Assuming orderId is a string
             }
         };
 
-        // Perform the deleteItem operation to delete the specific order
+        // Delete the order item from DynamoDB
         await dynamoDB.send(new DeleteItemCommand(deleteParams));
 
         return {
@@ -27,10 +32,10 @@ module.exports.deleteByOrderId = async (event) => {
             body: JSON.stringify({ message: 'Order deleted successfully' }),
         };
     } catch (error) {
-        console.error('Error deleting order by ID:', error);
+        console.error('Error:', error.message);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to delete order by ID', error: error.message }),
+            body: JSON.stringify({ message: 'Failed to process request', error: error.message }),
         };
     }
 };

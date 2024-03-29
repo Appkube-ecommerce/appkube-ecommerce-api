@@ -34,3 +34,5 @@ customerdeletebyid:
       - httpApi:
           path: /deleteCustomerById/{customerId}
           method: delete
+
+                

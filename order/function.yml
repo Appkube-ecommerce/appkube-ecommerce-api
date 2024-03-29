@@ -1,42 +1,34 @@
-  createOrder:
-    handler: order/createOrder.createOrder
-    timeout: 600
+getAllOrders:
+    handler: Order/getAllOrders.getAllOrders
     events:
-       - http:
-           method: POST
-           path: createorder
-
-
-  getallOrder:
-    handler: order/getAllOrder.getAllOrders
-    timeout: 600
-    events:
-      - http:
+      - httpApi:
+          path: /getAllOrders
           method: get
-          path: getallOrder
 
-  getById:
-    handler: order/getById.getById
-    timeout: 600
-    events: 
-      - http:
-          method: get
-          path: getbyid/{OrderId}   
-
-  deleteByOrderId:
-    handler: order/deleteById.deleteByOrderId
-    timeout: 600
+createOrder:
+    handler: Order/createOrder.createOrder
     events:
-      - http:
-          method:  delete
-          path: deletebyid/{OrderId}
+      - httpApi:
+          path: /createOrder
+          method: post   
 
-  update:
-    handler: order/updateOrder.updateOrder
-    timeout: 600
-    events: 
-      - http: 
-          method: put
-          path: update/{orderId}
+getOrderById:
+    handler: Order/getOrderById.getOrderById
+    events:
+      - httpApi:
+          path: /getOrderById/{id}
+          method: get                        
 
- 
+updateOrder:
+    handler: Order/updateOrder.updateOrder
+    events:
+      - httpApi:
+          path: /updateOrder/{id}
+          method: put    
+
+deleteOrderById: 
+    handler: Order/deleteOrderById.deleteOrderById
+    events:
+      - httpApi:
+          path: /deleteOrderById/{id}
+          method: delete

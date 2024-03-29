@@ -1,12 +1,75 @@
+<<<<<<< HEAD
+const { DynamoDBClient, UpdateItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
+=======
 const { DynamoDBClient, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
 const { marshall } = require('@aws-sdk/util-dynamodb');
+>>>>>>> main
 require('dotenv').config();
 
+// Create DynamoDB client
 const dynamoDB = new DynamoDBClient({
     region: process.env.REGION,
     endpoint: process.env.ENDPOINT
 });
 
+<<<<<<< HEAD
+const tableName = process.env.ORDER_TABLE_NAME;
+
+// Handler function to update an order
+module.exports.updateOrder = async (event) => {
+    try {
+        const orderId = event.pathParameters.id; // Extract orderId from the endpoint
+
+        // Validate orderId
+        if (!orderId) {
+            throw new Error('Invalid orderId.');
+        }
+
+        const body = JSON.parse(event.body);
+        const { status } = body;
+
+        // Validate input
+        if (!status) {
+            throw new Error('Invalid input. "status" is required for updating the order.');
+        }
+
+        // Get the existing order item from DynamoDB
+        const getItemParams = {
+            TableName: tableName,
+            Key: marshall({ id: orderId })
+        };
+
+        const { Item } = await dynamoDB.send(new GetItemCommand(getItemParams));
+
+        if (!Item) {
+            throw new Error('Order not found.');
+        }
+
+        // Update the status of the order
+        const updatedOrder = {
+            ...unmarshall(Item),
+            status: status,
+            updatedAt: new Date().toISOString()
+        };
+
+        // Save the updated order item to DynamoDB using UpdateItemCommand
+        const updateParams = {
+            TableName: tableName,
+            Key: marshall({ id: orderId }),
+            UpdateExpression: "SET #status = :status, updatedAt = :updatedAt",
+            ExpressionAttributeNames: {
+                "#status": "status"
+            },
+            ExpressionAttributeValues: {
+                ":status": { S: updatedOrder.status },
+                ":updatedAt": { S: updatedOrder.updatedAt }
+            },
+            ReturnValues: "ALL_NEW"
+        };
+
+        const { Attributes } = await dynamoDB.send(new UpdateItemCommand(updateParams));
+=======
 const tableName = 'Order-hxojpgz675cmbad5uyoeynwh54-dev';
 
 module.exports.updateOrder = async (event) => {
@@ -47,10 +110,11 @@ module.exports.updateOrder = async (event) => {
         };
 
         const updatedOrderResult = await dynamoDB.send(new UpdateItemCommand(updateParams));
+>>>>>>> main
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: 'Order updated successfully', updatedOrder: updatedOrderResult.Attributes }),
+            body: JSON.stringify({ message: 'Order updated successfully', order: unmarshall(Attributes) }),
         };
     } catch (error) {
         console.error('Error:', error.message);
