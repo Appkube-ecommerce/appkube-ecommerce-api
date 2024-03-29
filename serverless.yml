@@ -66,17 +66,36 @@ provider:
 #    - include-me-dir/**
 
 functions:
+  # createProduct:
+  #   handler: products/createProduct.handler
+  #   events:
+  #     - httpApi:
+  #         path: /product
+  #         method: post
+
+  # updateProduct:
+  #   handler: products/updateProduct.handler
+  #   events:
+  #     - httpApi:
+  #         path: /product
+  #         method: put
+
+  # getAllProducts:
+  #   handler: products/getAllProducts.handler
+  #   events:
+  #     - httpApi:
+  #         path: /product  # Corrected path to differentiate from other endpoints
+  #         method: get      # Corrected method to match the intended action
 
   - ${file(inventory/function.yml)}
-#    The following are a few example events you can configure
+  - ${file(Products/function.yml)}
+  # #    The following are a few example events you can configure
 
   - ${file(OrderBills/function.yml)}
-  - ${file(Products/function.yml)}
   - ${file(Users/function.yml)}
   - ${file(Login/function.yml)}
 
-
-  - ${file(catalog/function.yml)}
+#   - ${file(catalog/function.yml)}
 
 plugins:
   - serverless-offline
