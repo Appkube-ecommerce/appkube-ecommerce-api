@@ -10,7 +10,7 @@ module.exports.getAllOrders = async (event) => {
     try {
         // Define parameters for the scan operation
         const scanParams = {
-            TableName: 'Order'
+            TableName: 'Order-hxojpgz675cmbad5uyoeynwh54-dev'
         };
 
         // Perform the scan operation to retrieve all items from the Order table

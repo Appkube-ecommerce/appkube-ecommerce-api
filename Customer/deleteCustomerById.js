@@ -1,39 +1,34 @@
+require('dotenv').config(); // Load environment variables from .env file
+
 const AWS = require('aws-sdk');
-
-AWS.config.update({
-  region: 'localhost',
-  endpoint: 'http://localhost:8000',
-});
-
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-module.exports.getCustomerById = async (event) => {
-  const { customerId } = event.pathParameters; 
-
-  if (!customerId) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify('Customer ID is required')
-    };
-  }
-
-  const params = {
-    TableName: 'Customer', 
-    Key: {
-      customerId: customerId 
-    }
-  };
-
+module.exports.deleteCustomerById = async (event) => {
   try {
-    const data = await dynamodb.get(params).promise();
+    // Fetch the table name from the environment variable
+    const tableName = process.env.DYNAMODB_TABLE_NAME;
+
+    // Extract customerId from the path parameters
+    const customerId = event.pathParameters.customerId;
+
+    const params = {
+      TableName: tableName,
+      Key: {
+        id: customerId // Assuming 'id' is the primary key attribute
+      }
+    };
+
+    // Delete the customer record
+    await dynamodb.delete(params).promise();
+
     return {
       statusCode: 200,
-      body: JSON.stringify(data.Item)
+      body: JSON.stringify({ message: 'Customer deleted successfully' })
     };
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify('Error getting data: ' + error.message)
+      body: JSON.stringify({ message: 'Error deleting customer: ' + error.message })
     };
   }
 };
