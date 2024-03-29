@@ -1,84 +1,78 @@
-const { DynamoDBClient, PutItemCommand, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
-const { v4: uuidv4 } = require('uuid');
+const { DynamoDBClient, UpdateItemCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 require('dotenv').config();
 
+// Create DynamoDB client
 const dynamoDB = new DynamoDBClient({
     region: process.env.REGION,
     endpoint: process.env.ENDPOINT
 });
 
+const tableName = process.env.ORDER_TABLE_NAME;
+
+// Handler function to update an order
 module.exports.updateOrder = async (event) => {
     try {
-        const requestBody = JSON.parse(event.body);
-        console.log("Request Body:", requestBody);
+        const orderId = event.pathParameters.id; // Extract orderId from the endpoint
 
-        const { orderId, items, paymentMethod, status, total } = requestBody;
-        console.log("Order ID:", orderId);
-        console.log("Items:", items);
-        console.log("Payment Method:", paymentMethod);
-        console.log("Status:", status);
-        console.log("Total:", total);
-
-        // Check if the order exists
-        const getOrderParams = {
-            TableName: 'Order',
-            Key: { 'orderId': { S: orderId } }
-        };
-
-        const orderResult = await dynamoDB.send(new GetItemCommand(getOrderParams));
-
-        if (!orderResult.Item) {
-            throw new Error('Order not found');
+        // Validate orderId
+        if (!orderId) {
+            throw new Error('Invalid orderId.');
         }
 
-        // Prepare updated order item
-        const updatedOrderItem = {
-            orderId: { S: orderId },
-            items: { L: items.map(item => ({
-                M: {
-                    productId: { S: item.productId },
-                    customerId: { S: item.customerId },
-                    quantity: { N: item.quantity.toString() },
-                    price: { N: item.price.toString() }
-                }
-            }))},
-            paymentMethod: { S: paymentMethod },
-            status: { S: status },
-            total: { N: total.toString() } // Assuming total is a number
+        const body = JSON.parse(event.body);
+        const { status } = body;
+
+        // Validate input
+        if (!status) {
+            throw new Error('Invalid input. "status" is required for updating the order.');
+        }
+
+        // Get the existing order item from DynamoDB
+        const getItemParams = {
+            TableName: tableName,
+            Key: marshall({ id: orderId })
         };
 
-        // Update order in the database
-        const updateOrderParams = {
-            TableName: 'Order',
-            Key: { 'orderId': { S: orderId } },
-            UpdateExpression: 'SET #items = :items, paymentMethod = :paymentMethod, #status = :status, #total = :total',
+        const { Item } = await dynamoDB.send(new GetItemCommand(getItemParams));
+
+        if (!Item) {
+            throw new Error('Order not found.');
+        }
+
+        // Update the status of the order
+        const updatedOrder = {
+            ...unmarshall(Item),
+            status: status,
+            updatedAt: new Date().toISOString()
+        };
+
+        // Save the updated order item to DynamoDB using UpdateItemCommand
+        const updateParams = {
+            TableName: tableName,
+            Key: marshall({ id: orderId }),
+            UpdateExpression: "SET #status = :status, updatedAt = :updatedAt",
             ExpressionAttributeNames: {
-                '#items': 'items',
-                '#status': 'status',
-                '#total': 'total' // Use an alias for the reserved keyword "total"
+                "#status": "status"
             },
             ExpressionAttributeValues: {
-                ':items': updatedOrderItem.items,
-                ':paymentMethod': updatedOrderItem.paymentMethod,
-                ':status': updatedOrderItem.status,
-                ':total': updatedOrderItem.total
+                ":status": { S: updatedOrder.status },
+                ":updatedAt": { S: updatedOrder.updatedAt }
             },
-            ReturnValues: 'ALL_NEW'
+            ReturnValues: "ALL_NEW"
         };
 
-        const updatedOrderResult = await dynamoDB.send(new UpdateItemCommand(updateOrderParams));
-
-        console.log("Updated Order:", updatedOrderResult);
+        const { Attributes } = await dynamoDB.send(new UpdateItemCommand(updateParams));
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: 'Order updated successfully', updatedOrder: updatedOrderResult.Attributes }),
+            body: JSON.stringify({ message: 'Order updated successfully', order: unmarshall(Attributes) }),
         };
     } catch (error) {
-        console.error('Error updating order:', error);
+        console.error('Error:', error.message);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to update order', error: error.message }),
+            body: JSON.stringify({ message: 'Failed to process request', error: error.message }),
         };
     }
 };

@@ -1,74 +1,76 @@
-// import necessary modules
-const { DynamoDBClient, PutItemCommand, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { marshall } = require('@aws-sdk/util-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
-// create DynamoDB client
+// Create DynamoDB client
 const dynamoDB = new DynamoDBClient({
     region: process.env.REGION,
     endpoint: process.env.ENDPOINT
 });
 
-// define the createOrder handler
+const tableName = process.env.ORDER_TABLE_NAME;
+
+// Handler function to create an order
 module.exports.createOrder = async (event) => {
     try {
-        // parse the request body
-        const requestBody = JSON.parse(event.body);
+        const body = JSON.parse(event.body);
+        const { items, paymentMethod, status } = body;
 
-        // extract relevant information from the request body
-        const { items, paymentMethod, status, total } = requestBody;
-
-        // generate a unique order ID
-        const orderId = uuidv4();
-
-        // validate if all required keys are present in the request body
-        if (!items || !paymentMethod || !status || !total) {
-            throw new Error('One or more required keys are missing from the request body');
+        // Validate input
+        if (!Array.isArray(items) || items.length === 0 || !paymentMethod || !status) {
+            throw new Error('Invalid input. "items" must be a non-empty array, "paymentMethod" and "status" are required.');
         }
 
-        // Save the order details to DynamoDB
+        const orderId = uuidv4(); // Generate unique ID for the order
+        const totalPrice = calculateTotalPrice(items);
+
+        // Prepare order item
         const orderItem = {
-            orderId,
-            items,
-            paymentMethod,
-            status,
-            total
+            id: orderId, // Ensure id is formatted as a string (S)
+            createdAt: new Date().toISOString(), // Auto-generate createdAt timestamp
+            customerOrdersId: uuidv4(), // Auto-generate customerOrdersId
+            items: formatItems(items),
+            paymentMethod: paymentMethod,
+            status: status,
+            totalPrice: totalPrice.toString(), // Convert totalPrice to string (N)
+            updatedAt: new Date().toISOString(), // Auto-generate updatedAt timestamp
+            _lastChangedAt: Date.now().toString(), // Auto-generate _lastChangedAt timestamp
+            _version: '1', // Auto-generate _version
+            __typename: 'Order' // Set __typename value
         };
 
-        const putOrderParams = {
-            TableName: 'Order',
-            Item: orderItem
+        // Save order item to DynamoDB using PutItemCommand
+        const putParams = {
+            TableName: tableName,
+            Item: marshall(orderItem) // Marshall the orderItem
         };
 
-        await dynamoDB.send(new PutItemCommand(putOrderParams));
-
-        // Update inventory in batches
-        const batchRequests = items.map(item => ({
-            PutRequest: {
-                Item: {
-                    productId: item.productId,
-                    quantity: item.quantity
-                }
-            }
-        }));
-
-        const batchParams = {
-            RequestItems: {
-                'Inventory': batchRequests
-            }
-        };
-
-        await dynamoDB.send(new BatchWriteItemCommand(batchParams));
+        await dynamoDB.send(new PutItemCommand(putParams));
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: 'Order created successfully' }),
+            body: JSON.stringify({ message: 'Order created successfully', orderId: orderId }),
         };
     } catch (error) {
-        console.error('Error creating order:', error);
+        console.error('Error:', error.message);
         return {
             statusCode: 500,
-            body: JSON.stringify({ message: 'Failed to create order', error: error.message }),
+            body: JSON.stringify({ message: 'Failed to process request', error: error.message }),
         };
     }
 };
+
+// Calculate total price of items
+function calculateTotalPrice(items) {
+    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+}
+
+// Format items array
+function formatItems(items) {
+    return items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity.toString(), // Convert quantity to string (N)
+        price: item.price.toString() // Convert price to string (N)
+    }));
+}
