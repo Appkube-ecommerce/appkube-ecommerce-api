@@ -1,6 +1,6 @@
  webhook:
-   handler: catalog/webhook.handker
+   handler:  webhooks/webhook.handler
    events:
      - httpApi:
-         path: what/webhook
+         path: /webhook
          method: post

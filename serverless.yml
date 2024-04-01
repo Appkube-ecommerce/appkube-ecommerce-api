@@ -96,6 +96,9 @@ functions:
   - ${file(Users/function.yml)}
   - ${file(Login/function.yml)}
   - ${file(Customer/function.yml)}
+  - ${file(webhooks/function.yml)}
+
+
 
 
 
