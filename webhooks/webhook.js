@@ -1,9 +1,9 @@
 const https = require("https");
 const { sendCatalogMessage } = require("./sendCatalog");
-const { getUserAddress,storeUserResponse, sendPaymentLinkButton } = require("./test2");
-//const { getUserAddressFromDatabase, checkUserExists,autofillUserAddressForm, logUserAddress}= require('./test2');
-const { getUserAddressFromDatabase, sendAddressMessageWithSavedAddresses } = require("./test3");
-const { client, connectToDatabase } = require("./conn");
+const { getUserAddressFromDatabase, sendAddressMessageWithSavedAddresses, storeUserResponse } = require("./test3");
+const { client, connectToDatabase } = require("./db");
+const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent} = require('./test2')
+
 //const createPaymentLink = require("./razorPay");
  
 client.connect();
@@ -36,7 +36,7 @@ async function updateSession(senderId, session) {
     } catch (error) {
         console.error('Error updating session in PostgreSQL:', error);
         throw error;
-    }
+    } 
 }
  
 // Define the sendReply function
@@ -154,83 +154,80 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                             if (!session) {
                                                 session = {};
                                             }
-                    
+                                            
+                                            let incompleteOrderAlertSent = await getIncompleteOrderAlertSent(senderId);
                                             switch (message.type) {
                                                 case 'text':
                                                     if (session && session.cart && session.cart.items && session.cart.items.length > 0) {
+                                                        // Handle incomplete order
                                                         const incompleteOrder = session.cart.items;
                                                         console.log('Incomplete order found:', incompleteOrder);
                                                         const incompleteOrderMessage = 'Your previous order is incomplete. Please complete your order or start a new one.';
                                                         await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, incompleteOrderMessage);
-                                                        session.cart = {};
-                                                        session = await updateSession(senderId, session);
+                                                        // Set the flag to indicate that the alert has been sent
+                                                        incompleteOrderAlertSent = true;
+                                                        // Update the flag in the database
+                                                        await setIncompleteOrderAlertSent(senderId, true);
+                                                        // Return response to prevent further processing
                                                         return {
                                                             statusCode: 200,
-                                                            body: JSON.stringify({ message: 'Done' }),
+                                                            body: JSON.stringify({ message: 'Incomplete order alert sent' }),
                                                             isBase64Encoded: false,
                                                         };
+                                                    } else {
+                                                        const reply_message = 'Welcome TO Farms';
+                                                        await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, reply_message);
+                                                        await sendCatalogMessage(senderId, WHATSAPP_TOKEN);
                                                     }
-                    
-                                                    const reply_message = 'Welcome TO Farms';
-                                                    await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, reply_message);
-                                                    await sendCatalogMessage(senderId, WHATSAPP_TOKEN);
                                                     break;
-                    
-                                                    case 'order':
-                                                        const message_order = message.order.product_items;
-                 
-                                                        // Process the order details and update the session
-                                                        const cartItems = message_order.map(item => ({
-                                                            productId: item.product_retailer_id,
-                                                            quantity: item.quantity,
-                                                            price: item.item_price,
-                                                            // Add other details as needed
-                                                        }));
-                 
-                                                        // Save the updated session
-                
-                                                        
-                                                        session.cart = {
-                                                            items: cartItems,
-                                                        };
-                 
-                    
+                                            
+                                                case 'order':
+                                                    const message_order = message.order.product_items;
+                                                    // Process the order details and update the session
+                                                    const cartItems = message_order.map(item => ({
+                                                        productId: item.product_retailer_id,
+                                                        quantity: item.quantity,
+                                                        price: item.item_price,
+                                                        // Add other details as needed
+                                                    }));
+                                                    // Reset the incomplete order flag when a new order is received
+                                                    incompleteOrderAlertSent = false;
+                                                    // Update the flag in the database
+                                                    await setIncompleteOrderAlertSent(senderId, false);
+                                                    // Save the updated session
+                                                    session.cart = { items: cartItems };
                                                     session = await updateSession(senderId, session);
-                                                    //await getUserAddress(senderId, WHATSAPP_TOKEN);
+                                                    // Get user address and send address message
                                                     const userDetails = await getUserAddressFromDatabase(senderId);
-                                                        console.log('====================================');
-                                                        console.log(userDetails);
-                                                        console.log('====================================');
-                                                    await sendAddressMessageWithSavedAddresses(senderId,WHATSAPP_TOKEN,userDetails);
-                                                            //console.log('@@@@@@'+sendAddressMessageWithSavedAddresses()+'#####');
-            
+                                                    await sendAddressMessageWithSavedAddresses(senderId, WHATSAPP_TOKEN, userDetails);
                                                     break;
-                    
+                                            
                                                 case 'interactive':
                                                     if (message.interactive.type === 'nfm_reply') {
                                                         const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
                                                         await storeUserResponse(senderId, responseJson);
                                                         const orders = session.cart.items;
-                                                
-                                            // Calculate total price based on the extracted orders
-                                            const totalPrice = orders.reduce((acc, item) => {
-                                                const itemTotal = item.quantity * item.price;
-                                                return acc + itemTotal;
-                                            }, 0);
- 
-                                            let paymentLink = await createPaymentLink.createPaymentLink(1)
-                                            sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url)
- 
-                                            // Save the updated session
-                                            session = await updateSession(senderId, session);
- 
-                                   
-                                        }
+                                                        // Calculate total price based on the extracted orders
+                                                        const totalPrice = orders.reduce((acc, item) => {
+                                                            const itemTotal = item.quantity * item.price;
+                                                            return acc + itemTotal;
+                                                        }, 0);
+                                                        let paymentLink = await createPaymentLink.createPaymentLink(1);
+                                                        sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
+                                                        // Save the updated session
+                                                        session = await updateSession(senderId, session);
+                                                        // Reset the incomplete order flag when the order is completed
+                                                        incompleteOrderAlertSent = false;
+                                                        // Update the flag in the database
+                                                        await setIncompleteOrderAlertSent(senderId, false);
+                                                    }
                                                     break;
-                    
+                                            
                                                 default:
                                                     break;
                                             }
+                                            
+                                            
                                         }
                                     }
                                 }

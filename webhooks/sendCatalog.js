@@ -1,5 +1,5 @@
 const axios = require('axios');
-module.exports.getUserAddress = async (toNumber, whatsappToken) => {
+module.exports.sendCatalogMessage = async (toNumber, whatsappToken) => {
     try {
         const myHeaders = {
             "Content-Type": "application/json",
@@ -12,18 +12,21 @@ module.exports.getUserAddress = async (toNumber, whatsappToken) => {
             "to": toNumber,
             "type": "interactive",
             "interactive": {
-                "type": "address_message",
-                "body": {
-                    "text": "Thanks for your order! Tell us what address you’d like this order delivered to."
-                },
-                "action": {
-                    "name": "address_message",
-                    "parameters": {
-                        "country": "IN"
-                    }
+              "type": "catalog_message",
+              "body": {
+                "text": "Hello! Thanks for your interest. Ordering is easy. Just visit our catalog and add items to purchase."
+              },
+              "action": {
+                "name": "catalog_message",
+                "parameters": {
+                  "thumbnail_product_retailer_id": ""
                 }
+              },
+              "footer": {
+                "text": "Best grocery deals on WhatsApp!"
+              }
             }
-        };
+          };
  
         const requestOptions = {
             method: 'POST',
@@ -84,7 +87,3 @@ module.exports.sendPaymentLinkButton = async (toNumber, whatsappToken,url) => {
         throw error;
     }
 };
-
-// Assuming this function is defined in createPaymentLink.js
-
-// Mock implementation of createPaymentLink function
