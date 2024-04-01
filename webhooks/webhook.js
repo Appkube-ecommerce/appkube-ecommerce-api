@@ -1,9 +1,9 @@
 const https = require("https");
 const { sendCatalogMessage } = require("./sendCatalog");
-const { getUserAddress,storeUserResponse, sendPaymentLinkButton } = require("./test2");
-//const { sendAddressMessage, getUser}= require('./test2');
-const { client, connectToDatabase } = require("./conn");
-const { log } = require("console");
+const { getUserAddressFromDatabase, sendAddressMessageWithSavedAddresses, storeUserResponse } = require("./test3");
+const { client, connectToDatabase } = require("./db");
+const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent} = require('./test2')
+
 //const createPaymentLink = require("./razorPay");
  
 client.connect();
@@ -36,7 +36,7 @@ async function updateSession(senderId, session) {
     } catch (error) {
         console.error('Error updating session in PostgreSQL:', error);
         throw error;
-    }
+    } 
 }
  
 // Define the sendReply function
@@ -146,139 +146,113 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                     
                                     if (value != null && value.messages != null) {
                                         const phone_number_id = value.metadata.phone_number_id;
-                                            console.log('@@'+value+"dm");
+                                        console.log('@@' + value + "dm");
                                         for (const message of value.messages) {
                                             const senderId = message.from;
-                                            // console.log('====================================');
-                                            // console.log(message);
-                                            // console.log('====================================');
+                    
                                             let session = await getSession(senderId);
                                             if (!session) {
                                                 session = {};
                                             }
-                    
+                                            
+                                            let incompleteOrderAlertSent = await getIncompleteOrderAlertSent(senderId);
                                             switch (message.type) {
                                                 case 'text':
-                                                    // Check for incomplete order regardless of the message type
                                                     if (session && session.cart && session.cart.items && session.cart.items.length > 0) {
                                                         // Handle incomplete order
                                                         const incompleteOrder = session.cart.items;
                                                         console.log('Incomplete order found:', incompleteOrder);
-                                                        // Send alert message to user's WhatsApp number
                                                         const incompleteOrderMessage = 'Your previous order is incomplete. Please complete your order or start a new one.';
                                                         await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, incompleteOrderMessage);
-                    
-                                                        // Reset the incomplete order state
-                                                        session.cart = {};
-                                                        // Save or update the session
-                                                        session = await updateSession(senderId, session);
-                    
-                                                        // Exit the switch statement to prevent sending the catalog message
+                                                        // Set the flag to indicate that the alert has been sent
+                                                        incompleteOrderAlertSent = true;
+                                                        // Update the flag in the database
+                                                        await setIncompleteOrderAlertSent(senderId, true);
+                                                        // Return response to prevent further processing
                                                         return {
                                                             statusCode: 200,
-                                                            body: JSON.stringify({ message: 'Done' }),
+                                                            body: JSON.stringify({ message: 'Incomplete order alert sent' }),
                                                             isBase64Encoded: false,
                                                         };
+                                                    } else {
+                                                        const reply_message = 'Welcome TO Farms';
+                                                        await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, reply_message);
+                                                        await sendCatalogMessage(senderId, WHATSAPP_TOKEN);
                                                     }
-                    
-                                                    const reply_message = 'Welcome TO Farms';
-                                                    await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, reply_message);
-                                                    await sendCatalogMessage(senderId, WHATSAPP_TOKEN);
                                                     break;
-                    
+                                            
                                                 case 'order':
                                                     const message_order = message.order.product_items;
-                    
-                                                    // Process the new order details
+                                                    // Process the order details and update the session
                                                     const cartItems = message_order.map(item => ({
                                                         productId: item.product_retailer_id,
                                                         quantity: item.quantity,
                                                         price: item.item_price,
                                                         // Add other details as needed
                                                     }));
-                    
-                                                    // Update the session with the new order information
-                                                    session.cart = {
-                                                        items: cartItems,
-                                                        status: 'incomplete' // Mark the order as incomplete
-                                                    };
-                    
-                                                    // Save or update the session with the new order information
+                                                    // Reset the incomplete order flag when a new order is received
+                                                    incompleteOrderAlertSent = false;
+                                                    // Update the flag in the database
+                                                    await setIncompleteOrderAlertSent(senderId, false);
+                                                    // Save the updated session
+                                                    session.cart = { items: cartItems };
                                                     session = await updateSession(senderId, session);
-                    
-                                                    // Proceed with getting user address
-                                                    await getUserAddress(senderId, WHATSAPP_TOKEN);
-
-                                // Store the message in the database after getUserAddress
-                                                    //await storeUserResponse(senderId, message);
-                    
-                                                    // Call receiveUserResponse to capture user's response
-                                                    
+                                                    // Get user address and send address message
+                                                    const userDetails = await getUserAddressFromDatabase(senderId);
+                                                    await sendAddressMessageWithSavedAddresses(senderId, WHATSAPP_TOKEN, userDetails);
                                                     break;
-                    
+                                            
                                                 case 'interactive':
                                                     if (message.interactive.type === 'nfm_reply') {
-
                                                         const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
-                                    
-                                    // Store the response JSON in the database
                                                         await storeUserResponse(senderId, responseJson);
-                                                        // Process the interactive message and update the session
                                                         const orders = session.cart.items;
-                    
                                                         // Calculate total price based on the extracted orders
                                                         const totalPrice = orders.reduce((acc, item) => {
                                                             const itemTotal = item.quantity * item.price;
                                                             return acc + itemTotal;
                                                         }, 0);
-                    
-                                                        // Generate payment link for the current order
-                                                         let paymentLink = await createPaymentLink.createPaymentLink(totalPrice);
-                                                         sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
-                    
-                                                        // Mark the order as complete
-                                                        session.cart.status = 'complete';
-                    
-                                                        // Save or update the session with the new order information
+                                                        let paymentLink = await createPaymentLink.createPaymentLink(1);
+                                                        sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
+                                                        // Save the updated session
                                                         session = await updateSession(senderId, session);
+                                                        // Reset the incomplete order flag when the order is completed
+                                                        incompleteOrderAlertSent = false;
+                                                        // Update the flag in the database
+                                                        await setIncompleteOrderAlertSent(senderId, false);
                                                     }
                                                     break;
-                    
-                                                // Handle other message types as needed
-                    
+                                            
                                                 default:
-                                                    // Handle unknown message types
                                                     break;
                                             }
                                             
+                                            
                                         }
-                                        
                                     }
                                 }
                             }
                         }
                     
-                    
- 
-            return {
-                statusCode: 200,
-                body: JSON.stringify({ message: 'Done' }),
-                isBase64Encoded: false,
-            };
-        } else {
-            const responseBody = 'Unsupported method';
-            return {
-                statusCode: 403,
-                body: JSON.stringify(responseBody),
-                isBase64Encoded: false,
-            };
-        }
-    } catch (error) {
-        console.error('Error in handler:', error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: 'Internal Server Error' }),
-            isBase64Encoded: false,
-        };
-    }
-};
+                        return {
+                            statusCode: 200,
+                            body: JSON.stringify({ message: 'Done' }),
+                            isBase64Encoded: false,
+                        };
+                    } else {
+                        const responseBody = 'Unsupported method';
+                        return {
+                            statusCode: 403,
+                            body: JSON.stringify(responseBody),
+                            isBase64Encoded: false,
+                        };
+                    }
+                    } catch (error) {
+                    console.error('Error in handler:', error);
+                    return {
+                        statusCode: 500,
+                        body: JSON.stringify({ error: 'Internal Server Error' }),
+                        isBase64Encoded: false,
+                    };
+                    }
+                    };

@@ -13,21 +13,14 @@ module.exports.getAllInventory = async () => {
             TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev'
         });
 
-        // Perform the ScanCommand to get all inventory items
+        // Perform the Scan operation to get all inventory items
         const data = await dynamoDB.send(command);
+        console.log(data);
 
-        // Unmarshall the items to convert DynamoDB format to JSON
-        const items = data.Items.map(item => unmarshall(item));
+        // Process the data, unmarshalling each item
+        const formattedItems = data.Items.map(item => unmarshall(item));
 
-        // Format the items according to the desired format
-        const formattedItems = items.map(item => ({
-            unit: item.unit,
-            availableQuantity: item.availableQuantity,
-            id: item.id,
-            productId: item.productId
-        }));
-
-        // Return the formatted list of inventory items
+        // Return the list of inventory items
         return {
             statusCode: 200,
             body: JSON.stringify(formattedItems),
