@@ -1,23 +1,11 @@
 const axios = require('axios');
-const { Pool } = require('pg');
+const {client} = require('./db')
 
-// Configure PostgreSQL connection pool with your database credentials
-const pool = new Pool({
-    user: '',
-    password: '',
-    host: '', // e.g., 'localhost' or 'your_database.amazonaws.com'
-    database: '',
-    port: , // Default PostgreSQL 
-})
 
 async function sendAddressMessageWithSavedAddresses(toNumber, whatsappToken, userDetails) {
     try {
-        // if (!userDetails || !userDetails.name) {
-        //     throw new Error('Invalid user address details');
-        // }
-
+    
         // Construct message data with saved address details
-
 const messageData = {
     "messaging_product": "whatsapp",
     "recipient_type": "individual",
@@ -95,7 +83,7 @@ async function getUserAddressFromDatabase(senderId) {
         };
 
         // Connect to the database and execute the query
-        const client = await pool.connect();
+        await client.connect();
         const { rows } = await client.query(query);
         client.release();
 
@@ -114,7 +102,7 @@ async function getUserAddressFromDatabase(senderId) {
  async function storeUserResponse(phone_number_id, message) {
     try {
         // Connect to the database
-        const client = await pool.connect();
+       await client.connect();
 
         // Check if the user already exists in the database
         const existingRecord = await client.query('SELECT phone_number FROM users WHERE phone_number = $1', [phone_number_id]);
