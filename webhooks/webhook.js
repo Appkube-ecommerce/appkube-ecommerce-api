@@ -1,8 +1,9 @@
 const https = require("https");
 const { sendCatalogMessage } = require("./sendCatalog");
-const { getUserAddressFromDatabase, sendAddressMessageWithSavedAddresses, storeUserResponse } = require("./test3");
+const { getUserAddressFromDatabase, sendAddressMessageWithSavedAddresses, storeUserResponse } = require("./getAddress");
 const { client, connectToDatabase } = require("./db");
-const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent} = require('./test2')
+const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent} = require('./alertOrder')
+require('dotenv').config();
 
 //const createPaymentLink = require("./razorPay");
  

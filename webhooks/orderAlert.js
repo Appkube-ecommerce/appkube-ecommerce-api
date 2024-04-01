@@ -4,8 +4,7 @@ const { client } = require('./db')
 // Function to retrieve the incomplete order alert flag from the sessions table
 async function getIncompleteOrderAlertSent(senderId) {
     try {
-        // Connect to the database
-        await client.connect();
+
         // Query the database to retrieve the flag
         const result = await client.query('SELECT session_data->>\'incompleteOrderAlertSent\' AS flag FROM sessions WHERE sender_id = $1', [senderId]);
         // Release the client back to the pool
@@ -21,8 +20,6 @@ async function getIncompleteOrderAlertSent(senderId) {
 // Function to update the incomplete order alert flag in the sessions table
 async function setIncompleteOrderAlertSent(senderId, value) {
     try {
-        // Connect to the database
-        await client.connect();
         // Query the database to update the flag
         await client.query('UPDATE sessions SET session_data = jsonb_set(session_data, \'{"incompleteOrderAlertSent"}\', $1) WHERE sender_id = $2', [value, senderId]);
         // Release the client back to the pool

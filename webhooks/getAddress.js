@@ -83,7 +83,6 @@ async function getUserAddressFromDatabase(senderId) {
         };
 
         // Connect to the database and execute the query
-        await client.connect();
         const { rows } = await client.query(query);
         client.release();
 
@@ -101,8 +100,6 @@ async function getUserAddressFromDatabase(senderId) {
 }
  async function storeUserResponse(phone_number_id, message) {
     try {
-        // Connect to the database
-       await client.connect();
 
         // Check if the user already exists in the database
         const existingRecord = await client.query('SELECT phone_number FROM users WHERE phone_number = $1', [phone_number_id]);
