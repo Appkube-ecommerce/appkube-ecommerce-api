@@ -3,8 +3,6 @@ require('dotenv').config();
 
 // Create DynamoDB client
 const dynamoDB = new DynamoDBClient({
-    region: process.env.REGION,
-    endpoint: process.env.ENDPOINT
 });
 
 // Handler function to retrieve all orders

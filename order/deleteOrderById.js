@@ -4,8 +4,7 @@ require('dotenv').config();
 
 // Create DynamoDB client
 const dynamoDB = new DynamoDBClient({
-    region: process.env.REGION,
-    endpoint: process.env.ENDPOINT
+
 });
 
 const tableName = process.env.ORDER_TABLE_NAME;

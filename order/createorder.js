@@ -5,8 +5,7 @@ require('dotenv').config();
 
 // Create DynamoDB client
 const dynamoDB = new DynamoDBClient({
-    region: process.env.REGION,
-    endpoint: process.env.ENDPOINT
+
 });
 
 const tableName = process.env.ORDER_TABLE_NAME;
@@ -15,7 +14,7 @@ const tableName = process.env.ORDER_TABLE_NAME;
 module.exports.createOrder = async (event) => {
     try {
         const body = JSON.parse(event.body);
-        const { items, paymentMethod, status } = body;
+        const { items, paymentMethod, status ,customerId,totalPrice} = body;
 
         // Validate input
         if (!Array.isArray(items) || items.length === 0 || !paymentMethod || !status) {
@@ -23,14 +22,13 @@ module.exports.createOrder = async (event) => {
         }
 
         const orderId = uuidv4(); // Generate unique ID for the order
-        const totalPrice = calculateTotalPrice(items);
 
         // Prepare order item
         const orderItem = {
             id: orderId, // Ensure id is formatted as a string (S)
             createdAt: new Date().toISOString(), // Auto-generate createdAt timestamp
-            customerOrdersId: uuidv4(), // Auto-generate customerOrdersId
-            items: formatItems(items),
+            customerOrdersId: customerId, // Auto-generate customerOrdersId
+            items: items,
             paymentMethod: paymentMethod,
             status: status,
             totalPrice: totalPrice.toString(), // Convert totalPrice to string (N)
@@ -61,16 +59,3 @@ module.exports.createOrder = async (event) => {
     }
 };
 
-// Calculate total price of items
-function calculateTotalPrice(items) {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
-}
-
-// Format items array
-function formatItems(items) {
-    return items.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity.toString(), // Convert quantity to string (N)
-        price: item.price.toString() // Convert price to string (N)
-    }));
-}

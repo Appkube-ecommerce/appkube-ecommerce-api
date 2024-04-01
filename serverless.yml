@@ -95,14 +95,8 @@ functions:
   - ${file(OrderBills/function.yml)}
   - ${file(Users/function.yml)}
   - ${file(Login/function.yml)}
-<<<<<<< HEAD
   - ${file(Customer/function.yml)}
-  - ${file(Order/function.yml)}
-  - ${file(catalog/function.yml)}
-=======
 
-#   - ${file(catalog/function.yml)}
->>>>>>> main
 
 
   
