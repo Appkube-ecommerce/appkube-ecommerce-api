@@ -6,6 +6,7 @@ require('dotenv').config();
 // Function to retrieve the incomplete order alert flag from the sessions table
 async function getIncompleteOrderAlertSent(senderId) {
     try {
+
         // Connect to the database
 
         // await client.connect();
@@ -24,6 +25,7 @@ async function getIncompleteOrderAlertSent(senderId) {
 // Function to update the incomplete order alert flag in the sessions table
 async function setIncompleteOrderAlertSent(senderId, value) {
     try {
+
         // Connect to the database
 
         // await client.connect();

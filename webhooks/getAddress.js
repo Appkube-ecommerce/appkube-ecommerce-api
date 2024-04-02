@@ -105,6 +105,7 @@ async function getUserAddressFromDatabase(senderId) {
 
         // Connect to the database and execute the query
 
+
         // await client.connect();
         const { rows } = await client.query(query);
         
