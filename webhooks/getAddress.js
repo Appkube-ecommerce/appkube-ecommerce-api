@@ -1,5 +1,6 @@
 const axios = require('axios');
 const {client} = require('./db')
+
 require('dotenv').config();
 
 async function sendAddressMessageWithSavedAddresses(toNumber, whatsappToken, userDetails) {
@@ -73,6 +74,7 @@ async function sendAddressMessageWithSavedAddresses(toNumber, whatsappToken, use
 
         // Set up request options
         const requestOptions = {
+
             headers: myHeaders,
             redirect: 'follow',
         };
@@ -80,6 +82,7 @@ async function sendAddressMessageWithSavedAddresses(toNumber, whatsappToken, use
         console.log("Sending address message with saved addresses to number:", toNumber);
 
         // Send the address message with saved addresses
+
         const response = await axios.post("https://graph.facebook.com/v19.0/208582795666783/messages", messageData, requestOptions);
         const result = response.data;
 
@@ -101,6 +104,7 @@ async function getUserAddressFromDatabase(senderId) {
         };
 
         // Connect to the database and execute the query
+
         // await client.connect();
         const { rows } = await client.query(query);
         
@@ -120,6 +124,7 @@ async function getUserAddressFromDatabase(senderId) {
  async function storeUserResponse(phone_number_id, message) {
     try {
         // Connect to the database
+
     //    await client.connect();
 
         // Check if the user already exists in the database
@@ -134,6 +139,7 @@ async function getUserAddressFromDatabase(senderId) {
         }
 
         // Release the database connection
+
         
     } catch (error) {
         console.error('Error storing user response:', error);
