@@ -95,16 +95,11 @@ functions:
   - ${file(OrderBills/function.yml)}
   - ${file(Users/function.yml)}
   - ${file(Login/function.yml)}
-<<<<<<< HEAD
   - ${file(Customer/function.yml)}
   - ${file(webhooks/function.yml)}
 
 
 
-=======
-
-#   - ${file(catalog/function.yml)}
->>>>>>> aa07eb4cb8f2083689ca16fcdfd63e381c17123e
 
 
   

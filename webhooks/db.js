@@ -6,7 +6,7 @@ const dbConfig = {
     password: '',
     host: '', // e.g., 'localhost' or 'your_database.amazonaws.com'
     database: '',
-    port: , // Default PostgreSQL port
+    port: '', // Default PostgreSQL port
 
 };
 
