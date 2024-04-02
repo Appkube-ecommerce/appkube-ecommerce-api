@@ -1,14 +1,22 @@
-const { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');
-const { marshall } = require('@aws-sdk/util-dynamodb');
-const { v4: uuidv4 } = require('uuid');
+const { DynamoDBClient, GetItemCommand, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { marshall, unmarshall } = require('@aws-sdk/util-dynamodb');
 require('dotenv').config();
 
-// Create DynamoDB client
+const { v4: uuidv4 } = require('uuid');
+
+// Create DynamoDB client with options to remove undefined values
 const dynamoDB = new DynamoDBClient({
 
 });
 
-const tableName = process.env.ORDER_TABLE_NAME;
+const orderTableName = process.env.ORDER_TABLE_NAME;
+const customerTableName = process.env.CUSTOMER_TABLE_NAME;
+const productTableName = process.env.PRODUCT_TABLE_NAME;
+
+// Generate a random 5-digit number
+function generateRandomOrderId() {
+    return Math.floor(10000 + Math.random() * 90000);
+}
 
 // Handler function to create an order
 module.exports.createOrder = async (event) => {
@@ -17,31 +25,61 @@ module.exports.createOrder = async (event) => {
         const { items, paymentMethod, status ,customerId,totalPrice} = body;
 
         // Validate input
-        if (!Array.isArray(items) || items.length === 0 || !paymentMethod || !status) {
-            throw new Error('Invalid input. "items" must be a non-empty array, "paymentMethod" and "status" are required.');
+        if (!Array.isArray(items) || items.length === 0 || !customerId || !totalPrice) {
+            throw new Error('Invalid input. "items" must be a non-empty array, "customerId" and "totalPrice" are required.');
         }
 
-        const orderId = uuidv4(); // Generate unique ID for the order
+
+        const orderId = generateRandomOrderId().toString();
+
+        // Fetch customer details
+        const getCustomerParams = {
+            TableName: customerTableName,
+            Key: marshall({ id: customerId })
+        };
+        const { Item: customerItem } = await dynamoDB.send(new GetItemCommand(getCustomerParams));
+        if (!customerItem) {
+            throw new Error('Customer not found');
+        }
+
+        // Fetch product details for each item
+        const products = [];
+        for (const item of items) {
+            const getProductParams = {
+                TableName: productTableName,
+                Key: marshall({ id: item.productId })
+            };
+            const { Item: productItem } = await dynamoDB.send(new GetItemCommand(getProductParams));
+            if (!productItem) {
+                throw new Error(`Product with ID ${item.productId} not found`);
+            }
+            products.push(unmarshall(productItem));
+        }
 
         // Prepare order item
         const orderItem = {
-            id: orderId, // Ensure id is formatted as a string (S)
-            createdAt: new Date().toISOString(), // Auto-generate createdAt timestamp
-            customerOrdersId: customerId, // Auto-generate customerOrdersId
-            items: items,
-            paymentMethod: paymentMethod,
-            status: status,
-            totalPrice: totalPrice.toString(), // Convert totalPrice to string (N)
-            updatedAt: new Date().toISOString(), // Auto-generate updatedAt timestamp
-            _lastChangedAt: Date.now().toString(), // Auto-generate _lastChangedAt timestamp
-            _version: '1', // Auto-generate _version
-            __typename: 'Order' // Set __typename value
+            id: orderId,
+            createdAt: new Date().toISOString(),
+            customerOrdersId: uuidv4(),
+            items: items.map(item => ({
+                quantity: item.quantity
+            })),
+            paymentMethod: body.paymentMethod || "Credit Card",
+            status: body.status || "Pending",
+            totalPrice: totalPrice.toString(),
+            customerId: customerId,
+            //customerDetails: customerItem,
+            products: products,
+            updatedAt: new Date().toISOString(),
+            _lastChangedAt: Date.now().toString(),
+            _version: '1',
+            __typename: 'Order'
         };
 
         // Save order item to DynamoDB using PutItemCommand
         const putParams = {
-            TableName: tableName,
-            Item: marshall(orderItem) // Marshall the orderItem
+            TableName: orderTableName,
+            Item: marshall(orderItem)
         };
 
         await dynamoDB.send(new PutItemCommand(putParams));
@@ -58,4 +96,3 @@ module.exports.createOrder = async (event) => {
         };
     }
 };
-
