@@ -88,6 +88,7 @@ functions:
   #         method: get      # Corrected method to match the intended action
 
   - ${file(order/function.yml)}
+  - ${file(AppSyncFunctions/function.yaml)}
   - ${file(inventory/function.yml)}
   - ${file(Products/function.yml)}
   # #    The following are a few example events you can configure
