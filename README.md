@@ -65,8 +65,8 @@ Catalog_TABLE_NAME:Name of the table for storing Catalog data.
 Inventory_TABLE_NAME:Name of the table for storing Inventory data.
 ```
 Fill in the values accordingly based on your environment and requirements. After updating the .env file, make sure your application or scripts are configured to read these environment variables from the file.
-```
-```bash 
+
+```bash
       .env
 ```
 Ensure that all required environment variables are correctly set in the .env file.
