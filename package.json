@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.540.0",
+    "send": "^0.18.0",
+    "serverless-offline": "^13.3.3",
     "@aws-sdk/util-dynamodb": "^3.540.0",
     "aws-sdk": "^2.1576.0",
     "axios": "^1.6.8",

@@ -13,6 +13,7 @@ module.exports.getAllInventory = async () => {
             TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev'
         });
 
+
         // Perform the Scan operation to get all inventory items
         const data = await dynamoDB.send(command);
         console.log(data);
