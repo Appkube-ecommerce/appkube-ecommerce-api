@@ -25,7 +25,7 @@ module.exports.insertCustomer = async (event) => {
         id: customerId,
         name,
         phone,
-        // Add additional attributes according to the desired output format
+
         __typename: 'Customer', // Add __typename attribute
         _lastChangedAt: Date.now(), // Add _lastChangedAt attribute
         _version: 1, // Add _version attribute

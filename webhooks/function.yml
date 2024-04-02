@@ -3,4 +3,4 @@
    events:
      - httpApi:
          path: /webhook
-         method: post
+         method: ANY
