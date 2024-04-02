@@ -14,6 +14,7 @@ updateProduct:
 
 getAllProducts:
   handler: products/getAllProducts.handler
+  timeout: 600
   events:
     - http:
         path: /product  # Corrected path to differentiate from other endpoints
