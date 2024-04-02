@@ -5,6 +5,7 @@ const { client, connectToDatabase } = require("./db");
 const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent} = require('./alertOrder')
 const { sendButtons} = require('./merge');
 
+
 //const createPaymentLink = require("./razorPay");
  
 client.connect();
@@ -271,6 +272,7 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                     break;
                                             
                                                 case 'interactive':
+<<<<<<< HEAD
                                                     // Process the interactive message
                                                     // Reset the incomplete order flag when the order is completed
                                                     incompleteOrderAlertSent = false;
@@ -288,8 +290,31 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                     incompleteOrderAlertSent = false;
                                                     // Update the flag in the database
                                                     await setIncompleteOrderAlertSent(senderId, false);
+=======
+                                                    if (message.interactive.type === 'nfm_reply') {
+                                                        const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
+                                                        await storeUserResponse(senderId, responseJson);
+                                                        const orders = session.cart.items;
+                                                        // Calculate total price based on the extracted orders
+                                                        const totalPrice = orders.reduce((acc, item) => {
+                                                            const itemTotal = item.quantity * item.price;
+                                                            return acc + itemTotal;
+                                                        }, 0);
+                                                        let paymentLink = await createPaymentLink.createPaymentLink(1);
+
+                                                        // sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
+                                                        // Save the updated session
+                                                        session = await updateSession(senderId, session);
+                                                        // Reset the incomplete order flag when the order is completed
+                                                        incompleteOrderAlertSent = false;
+                                                        // Update the flag in the database
+                                                        await setIncompleteOrderAlertSent(senderId, false);
+                                                    }
+
+                                                    client.end()
+>>>>>>> a9fb7f1596668d3628091edebd7505dd4a22f305
                                                     break;
-                                            
+                                                    
                                                 default:
                                                     // Handle unknown message types gracefully
                                                     console.error('Unknown message type:', message.type);

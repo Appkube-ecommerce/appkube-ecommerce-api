@@ -37,17 +37,21 @@ module.exports.handler = async (event) => {
     // Prepare update expression and attribute values for DynamoDB update
     let updateExpression = 'SET ';
     const expressionAttributeValues = {};
+    const expressionAttributeNames = {};
+
 
     // Update the price field if provided
     if (productData.price) {
-      updateExpression += 'price = :price, ';
+      updateExpression += '#price = :price, ';
+      expressionAttributeNames['#price'] = 'price';
       expressionAttributeValues[':price'] = productData.price;
       updateFbData.price = productData.price
     }
 
     // Update other fields if provided
     if (productData.name) {
-      updateExpression += 'name = :name, ';
+      updateExpression += '#name = :name, ';
+      expressionAttributeNames['#name'] = 'name';
       expressionAttributeValues[':name'] = productData.name;
       updateFbData.name = productData.name;
     }
@@ -63,40 +67,43 @@ module.exports.handler = async (event) => {
       const uploadResult = await s3.upload(s3params).promise();
       const publicUrl = uploadResult.Location;
 
-      updateExpression += 'image = :image, ';
-      expressionAttributeValues[':image'] = publicUrl;
+      updateExpression += '#image = :image, ';
+      expressionAttributeNames['#image'] = 'image';
+      expressionAttributeValues[':image'] = productData.image;
       updateFbData.image_url = publicUrl;
     }
 
     if (productData.description) {
-      updateExpression += 'description = :description, ';
+      updateExpression += '#description = :description, ';
+      expressionAttributeNames['#description'] = 'description';
       expressionAttributeValues[':description'] = productData.description;
       updateFbData.description = productData.description;
     }
     if (productData.unit) {
-      updateExpression += 'unit = :unit, ';
+      updateExpression += '#unit = :unit, ';
+      expressionAttributeNames['#unit'] = 'unit';
       expressionAttributeValues[':unit'] = productData.unit.toUpperCase();
     }
     if (productData.category) {
-      updateExpression += 'category = :category, ';
+      updateExpression += '#category = :category, ';
+      expressionAttributeNames['#category'] = 'category';
       expressionAttributeValues[':category'] = productData.category.toUpperCase();
       updateFbData.category = productData.category.toUpperCase();
     }
 
     // Remove the trailing comma and space from the update expression
     updateExpression = updateExpression.slice(0, -2);
-
-    // Update the last modified timestamp
-    updateExpression += ', updatedAt = :updatedAt';
     expressionAttributeValues[':updatedAt'] = new Date().toISOString();
+    expressionAttributeNames['#updatedAt'] = 'updatedAt';
+    updateExpression += ', #updatedAt = :updatedAt';
 
     // Update the product in DynamoDB
     const updateParams = {
       TableName: tableName,
       Key: { id: productData.id },
       UpdateExpression: updateExpression,
+      ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues,
-      ReturnValues: 'ALL_NEW' // Change this if you need different return values
     };
 
 
@@ -112,7 +119,7 @@ module.exports.handler = async (event) => {
       ]
     };
 
-    console.log('Sending update request to Facebook Graph API:', product);
+    console.log('Sending update request to Facebook Graph API:', product.requests[0].data);
 
     // Make a request to Facebook Graph API
     await axios.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, product);
