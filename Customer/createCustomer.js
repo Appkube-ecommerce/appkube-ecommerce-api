@@ -4,12 +4,17 @@ const { v4: uuidv4 } = require('uuid');
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
+const generateCustomerId = () => {
+  return Math.floor(10000 + Math.random() * 90000).toString();
+};
+
+
 module.exports.insertCustomer = async (event) => {
   try {
     const requestBody = JSON.parse(event.body);
     const { name, phone } = requestBody;
 
-    const customerId = uuidv4();
+    const customerId = generateCustomerId();
 
     // Fetch the table name from the environment variable
     const tableName = process.env.DYNAMODB_TABLE_NAME;

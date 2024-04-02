@@ -13,13 +13,10 @@ module.exports.getAllInventory = async () => {
             TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev'
         });
 
+
         // Perform the Scan operation to get all inventory items
-        const data = await dynamoDB.send(command);
-        console.log(data);
-
-        // Process the data, unmarshalling each item
-        const formattedItems = data.Items.map(item => unmarshall(item));
-
+        const data = await dynamoDB.scan(params).promise();
+        console.log(data)
         // Return the list of inventory items
         return {
             statusCode: 200,
