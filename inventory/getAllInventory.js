@@ -20,6 +20,7 @@ module.exports.getAllInventory = async () => {
         // Process the data, unmarshalling each item
         const formattedItems = data.Items.map(item => unmarshall(item));
 
+
         // Return the list of inventory items
         return {
             statusCode: 200,

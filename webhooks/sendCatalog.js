@@ -1,4 +1,7 @@
 const axios = require('axios');
+
+require('dotenv').config();
+
 module.exports.sendCatalogMessage = async (toNumber, whatsappToken) => {
     try {
         const myHeaders = {
@@ -19,7 +22,8 @@ module.exports.sendCatalogMessage = async (toNumber, whatsappToken) => {
               "action": {
                 "name": "catalog_message",
                 "parameters": {
-                  "thumbnail_product_retailer_id": ""
+
+                  "thumbnail_product_retailer_id": "1171481066386"
                 }
               },
               "footer": {
@@ -35,7 +39,8 @@ module.exports.sendCatalogMessage = async (toNumber, whatsappToken) => {
             redirect: 'follow',
         };
  
-        const response = await axios.post("https://graph.facebook.com/v19.0//messages", JSON.stringify(addressMessageData), requestOptions);
+
+        const response = await axios.post("https://graph.facebook.com/v19.0/208582795666783/messages/", JSON.stringify(addressMessageData), requestOptions);
         const result = response.data;
         console.log(result);
     } catch (error) {
@@ -78,8 +83,8 @@ module.exports.sendPaymentLinkButton = async (toNumber, whatsappToken,url) => {
         const requestOptions = {
             headers: myHeaders,
         };
- 
-        const response = await axios.post("https://graph.facebook.com/v19.0//messages", sendPaymentLinkButtonData, requestOptions);
+
+        const response = await axios.post("https://graph.facebook.com/v19.0/208582795666783/messages", sendPaymentLinkButtonData, requestOptions);
         const result = response.data;
         console.log(result);
     } catch (error) {
