@@ -1,20 +1,20 @@
 createProduct:
   handler: products/createProduct.handler
   events:
-    - http:
+    - httpApi:
         path: /product
         method: post
 
 updateProduct:
   handler: products/updateProduct.handler
   events:
-    - http:
+    - httpApi:
         path: /product
         method: put
 
 getAllProducts:
   handler: products/getAllProducts.handler
   events:
-    - http:
+    - httpApi:
         path: /product  # Corrected path to differentiate from other endpoints
         method: get      # Corrected method to match the intended action

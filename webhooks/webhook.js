@@ -5,6 +5,7 @@ const { client, connectToDatabase } = require("./db");
 const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent} = require('./alertOrder')
 require('dotenv').config();
 
+
 //const createPaymentLink = require("./razorPay");
  
 client.connect();
@@ -214,7 +215,8 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                             return acc + itemTotal;
                                                         }, 0);
                                                         let paymentLink = await createPaymentLink.createPaymentLink(1);
-                                                        sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
+
+                                                        // sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
                                                         // Save the updated session
                                                         session = await updateSession(senderId, session);
                                                         // Reset the incomplete order flag when the order is completed
@@ -222,8 +224,10 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                         // Update the flag in the database
                                                         await setIncompleteOrderAlertSent(senderId, false);
                                                     }
+
+                                                    client.end()
                                                     break;
-                                            
+                                                    
                                                 default:
                                                     break;
                                             }

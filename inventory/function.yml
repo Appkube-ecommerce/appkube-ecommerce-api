@@ -1,5 +1,6 @@
   createInventoryItem:
     handler: inventory/createInventory.handler
+    timeout: 300
     events:
       - http:
           path: /inventory
@@ -8,14 +9,16 @@
 
   updateInventoryItem:
       handler: inventory/updateInventory.updateInventoryItem
+      timeout: 300
       events:
       - http:
-          path: /updateInventory
+          path: /updateInventory/{id}
           method: PUT
           cors: true
 
   getAllInventory:
       handler: inventory/getAllInventory.getAllInventory
+      timeout: 300
       events:
       - http:
           path: /getAllInventory
@@ -24,15 +27,17 @@
 
   getInventoryById:
     handler: inventory/getById.getInventoryById
+    timeout: 300
     events:
       - http:
           method: GET
-          path: /inventory/{inventoryId}
+          path: /inventory/{id}
           cors: true
   deleteInventoryById:
     handler: inventory/deleteById.deleteInventoryById
+    timeout: 300
     events:
       - http:
           method: DELETE
-          path: /inventory/{inventoryId}
+          path: /inventory/{id}
           cors: true

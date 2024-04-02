@@ -7,6 +7,7 @@ const dbConfig = {
     host: '', // e.g., 'localhost' or 'your_database.amazonaws.com'
     database: '',
     port: , // Default PostgreSQL port
+
 };
 
 // Create a new PostgreSQL client

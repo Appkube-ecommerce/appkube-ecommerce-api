@@ -2,24 +2,27 @@ const { DynamoDBClient, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/
 require('dotenv').config();
 
 const dynamoDB = new DynamoDBClient({
-    region: process.env.REGION,
-    endpoint: process.env.ENDPOINT
+    region: process.env.REGION
 });
 
 module.exports.updateInventoryItem = async (event) => {
     try {
-        const { inventoryId, quantity } = JSON.parse(event.body);
+        // Get the id from the path parameters
+        const { id } = event.pathParameters;
+        
+        // Parse the request body for availableQuantity and unit
+        const { availableQuantity, unit } = JSON.parse(event.body);
 
         // Validate input
-        if (!inventoryId || !quantity || typeof quantity !== 'number') {
-            throw new Error('Invalid input. "inventoryId" and "quantity" are required and "quantity" must be a number.');
+        if (!id || !availableQuantity || typeof availableQuantity !== 'number' || !unit) {
+            throw new Error('Invalid input. "id", "availableQuantity", and "unit" are required and "quantity" must be a number.');
         }
 
         // Check if the inventory item exists
         const getItemParams = {
-            TableName: 'Inventory',
+            TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
-                inventoryId: { S: inventoryId }
+                id: { S: id }
             }
         };
 
@@ -29,15 +32,20 @@ module.exports.updateInventoryItem = async (event) => {
             throw new Error('Inventory item not found.');
         }
 
-        // Update the quantity of the existing item
+        // Update the quantity and unit of the existing item
         const updateParams = {
-            TableName: 'Inventory',
+            TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
             Key: {
-                inventoryId: { S: inventoryId }
+                id: { S: id }
             },
-            UpdateExpression: 'SET quantity = :quantity',
+            UpdateExpression: 'SET #q = :availableQuantity, #u = :unit',
+            ExpressionAttributeNames: {
+                '#q': 'availableQuantity',
+                '#u': 'unit'
+            },
             ExpressionAttributeValues: {
-                ':quantity': { N: quantity.toString() }
+                ':availableQuantity': { N: availableQuantity.toString() },
+                ':unit': { S: unit }
             }
         };
 
