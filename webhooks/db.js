@@ -2,11 +2,11 @@ const { Client } = require('pg');
 
 // Replace these values with your PostgreSQL connection details
 const dbConfig = {
-    user: '',
-    password: '',
-    host: '', // e.g., 'localhost' or 'your_database.amazonaws.com'
-    database: '',
-    port: , // Default PostgreSQL port
+    user: 'postgres',
+    password: 'postgres',
+    host: 'localhost', // e.g., 'localhost' or 'your_database.amazonaws.com'
+    database: 'demo',
+    port: '5432', // Default PostgreSQL port
 };
 
 // Create a new PostgreSQL client
