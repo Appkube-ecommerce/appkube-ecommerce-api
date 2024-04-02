@@ -1,35 +1,35 @@
 createProduct:
   handler: products/createProduct.handler
   events:
-    - http:
+    - httpApi:
         path: /product
         method: post
 
 updateProduct:
   handler: products/updateProduct.handler
   events:
-    - http:
+    - httpApi:
         path: /product
         method: put
 
 getAllProducts:
   handler: products/getAllProducts.handler
-  timeout: 600
   events:
-    - http:
+    - httpApi:
         path: /product  # Corrected path to differentiate from other endpoints
-        method: get   
+        method: get      # Corrected method to match the intended action
+
 delete:
   handler: products/delete.deleteProduct
   timeout: 300
   events:
-    - http:
+    - httpApi:
         path: /product
         method: delete
 getById:
   handler: products/getById.getProductById
   timeout: 300
   events:
-    - http:
+    - httpApi:
         path: /product/{id}
         method: get
