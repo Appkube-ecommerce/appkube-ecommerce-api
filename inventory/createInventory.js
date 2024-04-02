@@ -46,7 +46,7 @@ module.exports.handler = async (event) => {
         // If inventoryData.Items is undefined or empty, continue without error
         if (!inventoryData.Items || inventoryData.Items.length === 0) {
             // Generate a unique ID for the inventory item
-            const id = uuidv4();
+            const id = generateInventoryId();
 
             // Save inventory item to DynamoDB
             const putParams = {
@@ -55,7 +55,12 @@ module.exports.handler = async (event) => {
                     id: id,
                     productId: productId,
                     availableQuantity: availableQuantity.toString(), // convert to string
-                    unit: unit
+                    unit: unit,
+                    createdAt: new Date().toISOString(),
+                    _version: 1,
+                    _lastChangedAt: Date.now(),
+                    _deleted: false,
+                    updatedAt: new Date().toISOString(),
                 }),
                 // ConditionExpression to check if productId doesn't already exist in the Inventory table
                 ConditionExpression: 'attribute_not_exists(productId)'
@@ -80,4 +85,8 @@ module.exports.handler = async (event) => {
             body: JSON.stringify({ message: 'Failed to process request', error: error.message }),
         };
     }
+};
+
+const generateInventoryId = () => {
+    return Math.floor(10000 + Math.random() * 90000).toString();
 };
