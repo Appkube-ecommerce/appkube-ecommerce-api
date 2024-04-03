@@ -12,7 +12,6 @@ Appkube ecommerce backend Lambda  API's
     - [Authentication](#authentication)
     - [Endpoints](#endpoints)
 4. [Endpoints](#endpoints)
-    - [Catalog Management](#Catalog-management)
     - [Customer Management](#Customer-management)
     - [Inventory Management](#Inventory-management)
     - [Order Management](#Order-management)
