@@ -7,6 +7,7 @@ const cognito = new AWS.CognitoIdentityServiceProvider();
 module.exports.fetchDynamicGroups = async () => {
     const userPoolId = process.env.COGNITO_USER_POOL_ID; // Use environment variable for user pool ID
     try {
+        
         const groups = await listGroups(userPoolId);
         
         return {

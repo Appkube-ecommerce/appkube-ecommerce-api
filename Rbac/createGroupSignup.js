@@ -1,19 +1,16 @@
 const AWS = require('aws-sdk');
 const cognito = new AWS.CognitoIdentityServiceProvider();
- 
+require('dotenv').config();
 
 exports.handler = async (event) => {
     try {
         const { email, password } = JSON.parse(event.body);
-
         if (!email || !password) {
             return {
                 statusCode: 400,
                 body: JSON.stringify({ message: 'Missing required parameters' })
             };
         }
-
-        // Create SuperAdmin user in Cognito
         await createSuperAdmin(email, password);
 
         return {
@@ -28,10 +25,8 @@ exports.handler = async (event) => {
         };
     }
 };
-
 async function createSuperAdmin(email, password) {
     try {
-        // Create the SuperAdmin user in Cognito
         const userParams = {
             UserPoolId: process.env.COGNITO_USER_POOL_ID,
             Username: email,
@@ -42,7 +37,6 @@ async function createSuperAdmin(email, password) {
                 }
             ]
         };
-
         const createUserResponse = await cognito.adminCreateUser(userParams).promise();
         if (createUserResponse.User) {
             const paramsForSetPass = {
@@ -82,7 +76,6 @@ async function createSuperAdmin(email, password) {
         throw error;
     }
 }
-
 async function createSuperAdminGroup() {
     try {
         const params = {
