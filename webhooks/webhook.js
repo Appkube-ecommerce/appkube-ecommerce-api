@@ -272,25 +272,6 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                     break;
                                             
                                                 case 'interactive':
-<<<<<<< HEAD
-                                                    // Process the interactive message
-                                                    // Reset the incomplete order flag when the order is completed
-                                                    incompleteOrderAlertSent = false;
-                                                    // Continue with regular processing
-                                                    const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
-                                                    await storeUserResponse(senderId, responseJson);
-                                                    const orders = session.cart.items;
-                                                    // Calculate total price based on the extracted orders
-                                                    const totalPrice = calculateTotalPrice(orders);
-                                                    let paymentLink = await createPaymentLink.createPaymentLink(totalPrice);
-                                                    sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
-                                                    // Save the updated session
-                                                    session = await updateSession(senderId, session);
-                                                    // Reset the incomplete order flag when the order is completed
-                                                    incompleteOrderAlertSent = false;
-                                                    // Update the flag in the database
-                                                    await setIncompleteOrderAlertSent(senderId, false);
-=======
                                                     if (message.interactive.type === 'nfm_reply') {
                                                         const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
                                                         await storeUserResponse(senderId, responseJson);
@@ -312,7 +293,6 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                     }
 
                                                     client.end()
->>>>>>> a9fb7f1596668d3628091edebd7505dd4a22f305
                                                     break;
                                                     
                                                 default:
@@ -389,5 +369,16 @@ function calculateTotalPrice(orders) {
     }
 
     return totalPrice;
+}
+
+function mergeCarts(currentCart, previousOrderCart) {
+    // Check if previousOrderCart.items is an array
+    if (!Array.isArray(previousOrderCart.items)) {
+        previousOrderCart.items = [];
+    }
+    // Merge the current cart items with the previous incomplete order cart items
+    const mergedItems = [...currentCart.items, ...previousOrderCart.items];
+    // Return the merged cart object
+    return { items: mergedItems };
 }
 
