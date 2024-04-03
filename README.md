@@ -55,7 +55,6 @@ Replace the empty values (=) with your specific configurations for each variable
 For example:
 ```bash REGION:Your Region
 FACEBOOK_GRAPH_API_URL: The URL for Facebook's Graph API.
-CATALOG_ID: ID related to your catalog.
 FACEBOOK_ACCESS_TOKEN: Access token for accessing Facebook services.
 DYNAMODB_TABLE_NAME: Name of the DynamoDB table.
 ORDER_TABLE_NAME: Name of the table for storing orders.
