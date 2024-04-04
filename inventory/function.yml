@@ -1,43 +1,38 @@
-  createInventoryItem:
-    handler: inventory/createInventory.handler
-    timeout: 300
-    events:
-      - http:
-          path: /inventory
-          method: post
-          cors: true
+createInventoryItem:
+  handler: inventory/createInventory.handler
+  timeout: 300
+  events:
+    - httpApi:
+        path: /inventory
+        method: post
 
-  updateInventoryItem:
-      handler: inventory/updateInventory.updateInventoryItem
-      timeout: 300
-      events:
-      - http:
-          path: /updateInventory/{id}
-          method: PUT
-          cors: true
+updateInventoryItem:
+  handler: inventory/updateInventory.updateInventoryItem
+  timeout: 300
+  events:
+    - httpApi:
+        path: /updateInventory/{id}
+        method: PUT
 
-  getAllInventory:
-      handler: inventory/getAllInventory.getAllInventory
-      timeout: 300
-      events:
-      - http:
-          path: /getAllInventory
-          method: get
-          cors: true
+getAllInventory:
+  handler: inventory/getAllInventory.getAllInventory
+  timeout: 300
+  events:
+    - httpApi:
+        path: /getAllInventory
+        method: get
 
-  getInventoryById:
-    handler: inventory/getById.getInventoryById
-    timeout: 300
-    events:
-      - http:
-          method: GET
-          path: /inventory/{id}
-          cors: true
-  deleteInventoryById:
-    handler: inventory/deleteById.deleteInventoryById
-    timeout: 300
-    events:
-      - http:
-          method: DELETE
-          path: /inventory/{id}
-          cors: true
+getInventoryById:
+  handler: inventory/getById.getInventoryById
+  timeout: 300
+  events:
+    - httpApi:
+        method: GET
+        path: /inventory/{id}
+deleteInventoryById:
+  handler: inventory/deleteById.deleteInventoryById
+  timeout: 300
+  events:
+    - httpApi:
+        method: DELETE
+        path: /inventory/{id}
