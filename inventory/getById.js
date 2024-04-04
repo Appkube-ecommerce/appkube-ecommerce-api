@@ -31,18 +31,10 @@ module.exports.getInventoryById = async (event) => {
         // Unmarshall the item to convert DynamoDB format to JSON
         const item = unmarshall(data.Item);
 
-        // Format the item according to the desired format
-        const formattedItem = {
-            unit: item.unit,
-            availableQuantity: item.availableQuantity,
-            id: item.id,
-            productId: item.productId
-        };
-
-        // Return the formatted inventory item
+        // Return the inventory item
         return {
             statusCode: 200,
-            body: JSON.stringify(formattedItem),
+            body: JSON.stringify(item),
         };
     } catch (error) {
         console.error('Error getting inventory item:', error);
