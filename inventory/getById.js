@@ -9,12 +9,12 @@ const dynamoDB = new DynamoDBClient({
 module.exports.getInventoryById = async (event) => {
     try {
         // Get the inventory ID from the path parameters
-        const inventoryId = event.pathParameters.id;
+        const inId = event.pathParameters.id;
 
         // Define the GetItemCommand to get the item by ID
         const command = new GetItemCommand({
             TableName: 'Inventory-hxojpgz675cmbad5uyoeynwh54-dev',
-            Key: { id: { S: inventoryId } }
+            Key: { id: { S: inId } }
         });
 
         // Perform the GetItemCommand to get the inventory item
