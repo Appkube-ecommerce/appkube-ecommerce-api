@@ -88,6 +88,7 @@ functions:
   #         method: get      # Corrected method to match the intended action
 
   - ${file(order/function.yml)}
+  - ${file(AppSyncFunctions/function.yaml)}
   - ${file(inventory/function.yml)}
   - ${file(Products/function.yml)}
   # #    The following are a few example events you can configure
@@ -95,8 +96,16 @@ functions:
   - ${file(OrderBills/function.yml)}
   - ${file(Users/function.yml)}
   - ${file(Login/function.yml)}
+<<<<<<< HEAD
 
 #   - ${file(catalog/function.yml)}
+=======
+  - ${file(Customer/function.yml)}
+  - ${file(webhooks/function.yml)}
+
+
+
+>>>>>>> main
 
 
   

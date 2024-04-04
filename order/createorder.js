@@ -9,9 +9,9 @@ const dynamoDB = new DynamoDBClient({
 
 });
 
-const orderTableName = process.env.ORDER_TABLE_NAME;
-const customerTableName = process.env.CUSTOMER_TABLE_NAME;
-const productTableName = process.env.PRODUCT_TABLE_NAME;
+const orderTableName = process.env.ORDER_TABLE;
+const customerTableName = process.env.CUSTOMER_TABLE;
+const productTableName = process.env.PRODUCT_TABLE;
 
 // Generate a random 5-digit number
 function generateRandomOrderId() {
@@ -22,7 +22,7 @@ function generateRandomOrderId() {
 module.exports.createOrder = async (event) => {
     try {
         const body = JSON.parse(event.body);
-        const { items, paymentMethod, status ,customerId,totalPrice} = body;
+        const { items, paymentMethod, status, customerId, totalPrice } = body;
 
         // Validate input
         if (!Array.isArray(items) || items.length === 0 || !customerId || !totalPrice) {
@@ -60,16 +60,14 @@ module.exports.createOrder = async (event) => {
         const orderItem = {
             id: orderId,
             createdAt: new Date().toISOString(),
-            customerOrdersId: uuidv4(),
             items: items.map(item => ({
+                productId: item.productId,
                 quantity: item.quantity
             })),
-            paymentMethod: body.paymentMethod || "Credit Card",
-            status: body.status || "Pending",
+            paymentMethod: paymentMethod,
+            status: status.toUpperCase() || "PENDING",
             totalPrice: totalPrice.toString(),
             customerId: customerId,
-            //customerDetails: customerItem,
-            products: products,
             updatedAt: new Date().toISOString(),
             _lastChangedAt: Date.now().toString(),
             _version: '1',
