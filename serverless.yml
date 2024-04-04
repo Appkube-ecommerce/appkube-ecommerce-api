@@ -96,11 +96,16 @@ functions:
   - ${file(OrderBills/function.yml)}
   - ${file(Users/function.yml)}
   - ${file(Login/function.yml)}
+<<<<<<< HEAD
+
+#   - ${file(catalog/function.yml)}
+=======
   - ${file(Customer/function.yml)}
   - ${file(webhooks/function.yml)}
 
 
 
+>>>>>>> main
 
 
   

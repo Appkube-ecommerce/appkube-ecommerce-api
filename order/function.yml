@@ -23,7 +23,7 @@ updateOrder:
     handler: Order/updateOrder.updateOrder
     events:
       - httpApi:
-          path: /updateOrder/{id}
+          path: /updateOrder/{orderId}
           method: put    
 
 deleteOrderById: 
