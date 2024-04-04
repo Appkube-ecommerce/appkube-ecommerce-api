@@ -3,7 +3,7 @@ const { sendCatalogMessage } = require("./sendCatalog");
 const { getUserAddressFromDatabase, sendAddressMessageWithSavedAddresses, storeUserResponse } = require("./getAddress");
 const { client, connectToDatabase } = require("./db");
 const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent} = require('./alertOrder')
-require('dotenv').config();
+const { sendButtons} = require('./merge');
 
 
 //const createPaymentLink = require("./razorPay");
@@ -158,29 +158,96 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                             }
                                             
                                             let incompleteOrderAlertSent = await getIncompleteOrderAlertSent(senderId);
+
                                             switch (message.type) {
                                                 case 'text':
-                                                    if (session && session.cart && session.cart.items && session.cart.items.length > 0) {
+                                                    console.log('Received text message');
+                                                    // Send catalog options first
+                                                    const reply_message = 'Welcome TO PromodeAgroFarms';
+                                                    await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, reply_message);
+                                                    await sendCatalogMessage(senderId, WHATSAPP_TOKEN);
+                                            
+                                                    // Check if there is any incomplete order
+                                                    if (session && session.cart && session.cart.items && session.cart.items.length > 0 ) {
+                                                        console.log('Found incomplete order');
                                                         // Handle incomplete order
                                                         const incompleteOrder = session.cart.items;
+                                                        const incompleteOrderTotal = calculateTotalAmount(incompleteOrder);
                                                         console.log('Incomplete order found:', incompleteOrder);
-                                                        const incompleteOrderMessage = 'Your previous order is incomplete. Please complete your order or start a new one.';
-                                                        await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, incompleteOrderMessage);
-                                                        // Set the flag to indicate that the alert has been sent
-                                                        incompleteOrderAlertSent = true;
-                                                        // Update the flag in the database
+                                                        const incompleteOrderMessage = `Your previous order is incomplete. Total amount: ${incompleteOrderTotal}. Please choose an option:`;
+                                            
+                                                        // Define the options with merge and continue buttons
+                                                        const options = {
+                                                            messaging_product: "whatsapp",
+                                                            recipient_type: "individual",
+                                                            to: senderId,
+                                                            type: "interactive",
+                                                            interactive: {
+                                                                type: "button",
+                                                                body: {
+                                                                    text: incompleteOrderMessage
+                                                                },
+                                                                action: {
+                                                                    buttons: [
+                                                                        {
+                                                                            type: "reply",
+                                                                            reply: {
+                                                                                id: "merge_button",
+                                                                                title: "Merge Order"
+                                                                            }
+                                                                        },
+                                                                        {
+                                                                            type: "reply",
+                                                                            reply: {
+                                                                                id: "continue_button",
+                                                                                title: "Continue Order"
+                                                                            }
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        };
+                                            
+                                                        // Set a flag to indicate that incomplete order alert has been sent
                                                         await setIncompleteOrderAlertSent(senderId, true);
-                                                        // Return response to prevent further processing
+                                                        
+                                                        // Send buttons message
+                                                        await sendButtons(WHATSAPP_TOKEN, options);
+                                            
+                                                        // Return to prevent further processing
                                                         return {
                                                             statusCode: 200,
-                                                            body: JSON.stringify({ message: 'Incomplete order alert sent' }),
+                                                            body: JSON.stringify({ message: 'Incomplete order options sent' }),
                                                             isBase64Encoded: false,
                                                         };
-                                                    } else {
-                                                        const reply_message = 'Welcome TO Farms';
-                                                        await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, reply_message);
-                                                        await sendCatalogMessage(senderId, WHATSAPP_TOKEN);
                                                     }
+                                                    break;
+                                            
+                                                case 'postback':
+                                                    const payload = message.postback.payload;
+                                                    switch(payload) {
+                                                        case 'merge_button':
+                                                            // Handle merge button action
+                                                            // Merge the current cart with the previous incomplete order
+                                                            session.cart = mergeCarts(session.cart, incompleteOrder);
+                                                            // Reset the incomplete order flag
+                                                            incompleteOrderAlertSent = false;
+                                                            break;
+                                                        case 'continue_button':
+                                                            // Handle continue button action
+                                                            // Clear the current cart and continue with the current order
+                                                            session.cart = {};
+                                                            // Reset the incomplete order flag
+                                                            incompleteOrderAlertSent = false;
+                                                            break;
+                                                        default:
+                                                            // Handle unknown postback actions
+                                                            console.error('Unknown postback action:', payload);
+                                                            break;
+                                                    }
+                                                    // Continue with regular processing
+                                                    await sendReply(phone_number_id, WHATSAPP_TOKEN, senderId, reply_message);
+                                                    await sendCatalogMessage(senderId, WHATSAPP_TOKEN);
                                                     break;
                                             
                                                 case 'order':
@@ -229,8 +296,15 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                     break;
                                                     
                                                 default:
+                                                    // Handle unknown message types gracefully
+                                                    console.error('Unknown message type:', message.type);
                                                     break;
                                             }
+                                            
+
+
+                                            
+                                            
                                             
                                             
                                         }
@@ -261,3 +335,50 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                     };
                     }
                     };
+                    
+
+                    function calculateTotalAmount(cartItems) {
+                        let totalAmount = 0;
+                        for (const item of cartItems) {
+                            totalAmount += item.quantity * item.price;
+                        }
+                        return totalAmount;
+                    }
+                    // Example implementation of processOrderItems function
+
+// Example implementation of calculateTotalPrice function
+function calculateTotalPrice(orders) {
+    // Check if orders is null or undefined
+    if (!orders) {
+        console.error('Orders is null or undefined');
+        return 0; // Return 0 if orders is null or undefined
+    }
+
+    // Check if orders is iterable
+    if (typeof orders[Symbol.iterator] !== 'function') {
+        console.error('Orders is not iterable');
+        return 0; // Return 0 if orders is not iterable
+    }
+
+    // Initialize total price
+    let totalPrice = 0;
+
+    // Loop through each order and accumulate the total price
+    for (const order of orders) {
+        totalPrice += order.price * order.quantity;
+    }
+
+    return totalPrice;
+}
+
+function mergeCarts(currentCart, previousOrderCart) {
+    // Check if previousOrderCart.items is an array
+    if (!Array.isArray(previousOrderCart.items)) {
+        previousOrderCart.items = [];
+    }
+    // Merge the current cart items with the previous incomplete order cart items
+    const mergedItems = [...currentCart.items, ...previousOrderCart.items];
+    // Return the merged cart object
+    return { items: mergedItems };
+}
+
