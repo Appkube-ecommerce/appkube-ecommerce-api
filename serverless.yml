@@ -56,7 +56,7 @@ provider:
 functions:
   - ${file(Products/function.yml)}
   - ${file(RBAC/function.yml)}
-  # - ${file(loginwithotp/function.yml)}
+  - ${file(loginwithotp/function.yml)}
 
 plugins:
   - serverless-offline
