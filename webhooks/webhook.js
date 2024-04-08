@@ -2,8 +2,8 @@ const https = require("https");
 const { sendCatalogMessage } = require("./sendCatalog");
 const { getUserAddressFromDatabase, sendAddressMessageWithSavedAddresses, storeUserResponse } = require("./getAddress");
 const { client, connectToDatabase } = require("./db");
-const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent,getPreviousIncompleteOrder} = require('./alertOrder')
-const { sendButtons} = require('./merge');
+const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent, getPreviousIncompleteOrder,fetchPreviousOrderFromDatabase} = require('./alertOrder')
+const { sendButtons } = require('./merge');
 
 //const createPaymentLink = require("./razorPay");
  
@@ -172,8 +172,8 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                         
                                             
                                                     case 'order':
-    // Handle order messages
-    // Process the order details and update the session
+                                            // Handle order messages
+                                            // Process the order details and update the session
                                                 const messageOrder = message.order.product_items;
                                                 const newCartItems = messageOrder.map(item => ({
                                                     productId: item.product_retailer_id,
@@ -199,10 +199,25 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                             const previousOrder = await getPreviousIncompleteOrder(senderId);
                 
                                                             if (session && session.cart && session.cart.items && session.cart.items.length > 0 && incompleteOrderAlertSent) {
-                                                                // Handle incomplete order
-                                                                const incompleteOrderTotal = calculateTotalAmount(previousOrder.cart);
-                                                                const incompleteOrderMessage = `Your previous order is incomplete. Total amount: ${incompleteOrderTotal}. Please choose an option:`;
-                
+                                                                // Fetch previous order data
+                                                                const previousOrderData = getPreviousOrder(senderId); // Assuming fetchedData is the fetched array
+                                                                const previousOrderTotal = calculatePreviousCartTotal(previousOrderData);
+
+                                                                // Assuming session data is available
+                                                                const currentCartTotal = calculateCurrentCartTotal(session);
+
+                                                                // Calculate merged cart total
+                                                                const mergedCartTotal = calculateMergedCartTotal(previousOrderData, session);
+                                                                                                                                    
+                                                            
+                                                                // Generate a message with all the details
+                                                                const message = `
+                                                                    Your previous order total: ${previousOrderTotal}
+                                                                    Current cart total: ${currentCartTotal}
+                                                                    Merged cart total: ${mergedCartTotal}
+                                                                    Please choose an option:
+                                                                `;
+                                                            
                                                                 // Define the options with merge and continue buttons
                                                                 const options = {
                                                                     messaging_product: "whatsapp",
@@ -212,7 +227,7 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                                     interactive: {
                                                                         type: "button",
                                                                         body: {
-                                                                            text: incompleteOrderMessage
+                                                                            text: message
                                                                         },
                                                                         action: {
                                                                             buttons: [
@@ -234,6 +249,8 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                                         }
                                                                     }
                                                                 };
+                                                            
+                                                            
                 
                                                                 await sendButtons(WHATSAPP_TOKEN, options);
                 
@@ -280,7 +297,7 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                                                     case 'merge_button':
                                                                         // Handle merge button action
                                                                         const previousOrder = await getPreviousIncompleteOrder(senderId);
-                                                                        if (previousOrder && previousOrder.flag && session && session.incompleteOrderAlertSent) {
+                                                                        if (previousOrder && previousOrder.flag && session && incompleteOrderAlertSent) {
                                                                             session.cart = mergeCarts(session.cart, previousOrder.cart);
                                                                             incompleteOrderAlertSent = false; // Reset the incomplete order flag
                                                                             // Update the session and set the incomplete order alert flag
@@ -354,38 +371,88 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                             };
                                             
 
+                    // Ensure cartItems is iterable before calculating total amount
                     function calculateTotalAmount(cartItems) {
+                        if (!Array.isArray(cartItems) || cartItems.length === 0) {
+                            console.error('Invalid or empty cart items:', cartItems);
+                            return 0;
+                        }
+                    
                         let totalAmount = 0;
+                    
                         for (const item of cartItems) {
+                            if (typeof item !== 'object' || isNaN(item.price) || isNaN(item.quantity)) {
+                                console.error('Invalid item:', item);
+                                continue; // Skip invalid item
+                            }
+                    
                             totalAmount += item.quantity * item.price;
                         }
+                    
                         return totalAmount;
                     }
-                    // Example implementation of processOrderItems function
+                    
+//Example implementation of processOrderItems function
 
 // Example implementation of calculateTotalPrice function
-function calculateTotalPrice(orders) {
-    // Check if orders is null or undefined
-    if (!orders) {
-        console.error('Orders is null or undefined');
-        return 0; // Return 0 if orders is null or undefined
+// Function to calculate total amount for the previous order
+// Function to calculate total amount for the previous order
+function calculatePreviousCartTotal(previousOrderData) {
+    if (!previousOrderData || !previousOrderData.items || !Array.isArray(previousOrderData.items)) {
+        console.error('Invalid or empty previous order:', previousOrderData);
+        return 0;
     }
 
-    // Check if orders is iterable
-    if (typeof orders[Symbol.iterator] !== 'function') {
-        console.error('Orders is not iterable');
-        return 0; // Return 0 if orders is not iterable
+    const totalAmount = calculateTotalAmount(previousOrderData.items);
+    console.log('Previous order total amount:', totalAmount);
+    return totalAmount;
+}
+
+
+
+
+function calculateCurrentCartTotal(session) {
+    if (!session || !session.cart || !Array.isArray(session.cart.items)) {
+        console.error('Invalid or empty session cart:', session);
+        return 0;
     }
 
-    // Initialize total price
-    let totalPrice = 0;
+    const totalAmount = calculateTotalAmount(session.cart.items);
+    console.log('Current cart total amount:', totalAmount);
+    return totalAmount;
+}
 
-    // Loop through each order and accumulate the total price
-    for (const order of orders) {
-        totalPrice += order.price * order.quantity;
+
+function calculateMergedCartTotal(previousOrderData, session) {
+    const previousOrderTotal = calculatePreviousCartTotal(previousOrderData);
+    const currentCartTotal = calculateCurrentCartTotal(session);
+
+    return previousOrderTotal + currentCartTotal;
+}
+function calculateTotalAmount(cartItems) {
+    if (!Array.isArray(cartItems) || cartItems.length === 0) {
+        console.error('Invalid or empty cart items:', cartItems);
+        return 0;
     }
 
-    return totalPrice;
+    let totalAmount = 0;
+
+    for (const item of cartItems) {
+        if (typeof item !== 'object' || isNaN(item.price) || isNaN(item.quantity)) {
+            console.error('Invalid item:', item);
+            continue; // Skip invalid item
+        }
+
+        totalAmount += item.quantity * item.price;
+    }
+
+    return totalAmount;
+}
+
+async function getPreviousOrder(senderId) {
+    // Assuming you have a function to query the database based on the senderId
+    const previousOrderData = await fetchPreviousOrderFromDatabase(senderId);
+    return previousOrderData;
 }
 
 function mergeCarts(currentCart, previousOrderCart) {
@@ -398,3 +465,33 @@ function mergeCarts(currentCart, previousOrderCart) {
     // Return the merged cart object
     return { items: mergedItems };
 }
+// function getIncompleteOrderMessage(session, previousItems) {
+//     // Check if previousItems is defined and is an array
+//     if (!Array.isArray(previousItems)) {
+//         console.error('Previous items is not defined or not an array');
+//         return ''; // Return empty string or handle accordingly
+//     }
+
+//     let message = "Your previous order is incomplete. Here are the details:\n";
+    
+//     // Loop through previous items and append to message
+//     previousItems.forEach((item, index) => {
+//         message += `${index + 1}. ${item.productName} - Quantity: ${item.quantity}, Price: ${item.price}\n`;
+//     });
+    
+//     // Calculate and append previous cart total
+//     const previousCartTotal = calculateTotalAmount(previousItems);
+//     message += `\nPrevious Cart Total: ${previousCartTotal}\n`;
+    
+//     // Calculate and append current cart total
+//     const currentCartTotal = session ? calculateTotalAmount(session.cart.items) : 0;
+//     message += `Current Cart Total: ${currentCartTotal}\n`;
+    
+//     // Calculate and append merged cart total
+//     const mergedCartTotal = previousCartTotal + currentCartTotal;
+//     message += `Merged Cart Total: ${mergedCartTotal}\n`;
+    
+//     // Return the generated message
+//     return message;
+// }
+ 

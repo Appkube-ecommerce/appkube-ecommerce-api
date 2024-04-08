@@ -1,7 +1,4 @@
 const axios = require('axios');
-
-require('dotenv').config();
-
 module.exports.sendCatalogMessage = async (toNumber, whatsappToken) => {
     try {
         const myHeaders = {
@@ -9,7 +6,7 @@ module.exports.sendCatalogMessage = async (toNumber, whatsappToken) => {
             "Authorization": "Bearer " + whatsappToken
         };
  
-        const addressMessageData = {
+        const sendCatalog = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
             "to": toNumber,
@@ -17,13 +14,13 @@ module.exports.sendCatalogMessage = async (toNumber, whatsappToken) => {
             "interactive": {
               "type": "catalog_message",
               "body": {
-                "text": "Hello! Thanks for your interest. Ordering is easy. Just visit our catalog and add items to purchase."
+                "text": "Hi,"+ toNumber+ " Welcome to Promode Agro  quick shopping expirience."+
+                "To start shopping, you can view our catalog and add items to purchase." 
               },
               "action": {
                 "name": "catalog_message",
                 "parameters": {
-
-                  "thumbnail_product_retailer_id": "1171481066386"
+                  "thumbnail_product_retailer_id": "860320533328    "
                 }
               },
               "footer": {
@@ -35,12 +32,11 @@ module.exports.sendCatalogMessage = async (toNumber, whatsappToken) => {
         const requestOptions = {
             method: 'POST',
             headers: myHeaders,
-            data: JSON.stringify(addressMessageData), // Convert to JSON string
+            data: JSON.stringify(sendCatalog), // Convert to JSON string
             redirect: 'follow',
         };
  
-
-        const response = await axios.post("https://graph.facebook.com/v19.0/208582795666783/messages/", JSON.stringify(addressMessageData), requestOptions);
+        const response = await axios.post("https://graph.facebook.com/v19.0/208582795666783/messages", JSON.stringify(sendCatalog), requestOptions);
         const result = response.data;
         console.log(result);
     } catch (error) {
@@ -83,7 +79,7 @@ module.exports.sendPaymentLinkButton = async (toNumber, whatsappToken,url) => {
         const requestOptions = {
             headers: myHeaders,
         };
-
+ 
         const response = await axios.post("https://graph.facebook.com/v19.0/208582795666783/messages", sendPaymentLinkButtonData, requestOptions);
         const result = response.data;
         console.log(result);

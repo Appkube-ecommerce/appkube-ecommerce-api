@@ -1,39 +1,31 @@
 const axios = require('axios');
 
-async function sendButtons(toNumber, whatsappToken, options) {
+async function sendButtons( whatsappToken, options) {
     try {
-        const messageData = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": toNumber,
-            "type": "interactive",
-            "interactive": options
-        };
-
+        
         const requestOptions = {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + whatsappToken
             },
-            data: messageData,
-            redirect: 'follow',
+             data: options,
+             redirect: 'follow',
         };
 
-        console.log("Sending buttons message to number:", toNumber);
-
-        const response = await axios.post("https://graph.facebook.com/v19.0//messages", messageData, requestOptions);
+        const response = await axios.post("https://graph.facebook.com/v19.0/208582795666783/messages", options, requestOptions);
         const result = response.data;
 
-        console.log("Buttons message sent successfully:", result);
+         console.log("Buttons message sent successfully. Response:", result);
 
-        return result;
+        return response.data;
     } catch (error) {
-        console.error('Error sending buttons message:', error);
+        console.error("Error sending buttons message:", error);
+
+        // Throw the error to handle it in the calling function
         throw error;
     }
 }
-
 module.exports = {
     sendButtons
 };
