@@ -20,11 +20,7 @@ const sendOTP = async (mobileNumber, otp) => {
 };
 
 const associateOTPWithUser = async (mobileNumber, otp) => {
-    // Store the OTP in a secure manner, such as in a database or as an attribute in the user's profile in Cognito
-    // Here, we'll use a custom attribute in Cognito user pool
-    console.log("@@@",mobileNumber)
-    console.log("&&&",otp)
-    console.log("$$$$",process.env.COGNITO_USER_POOL_ID)
+   
     const params = {
         UserPoolId: process.env.COGNITO_USER_POOL_ID,
         Username: mobileNumber,
@@ -42,7 +38,7 @@ module.exports.generateAndSendOTP = async (event) => {
     try {
         const { mobileNumber } = JSON.parse(event.body);
         const otp = generateOTP();
-        console.log("####",otp)
+       
       //  await sendOTP(mobileNumber, otp);
         await associateOTPWithUser(mobileNumber, otp);
         return { statusCode: 200, body: JSON.stringify({ message: 'OTP generated and sent successfully',otp:otp }) };
@@ -51,26 +47,3 @@ module.exports.generateAndSendOTP = async (event) => {
         return { statusCode: 500, body: JSON.stringify({ message: 'Error generating and sending OTP', error: error }) };
     }
 };
-
-// module.exports.signInWithOTP = async (event) => {
-//     try {
-//         const { mobileNumber, otp } = JSON.parse(event.body);
-//         // Retrieve the OTP associated with the user from the secure storage
-//         const params = {
-//             UserPoolId: process.env.COGNITO_USER_POOL_ID,
-//             Username: mobileNumber
-//         };
-//         const user = await cognito.adminGetUser(params).promise();
-//         const storedOTP = user.UserAttributes.find(attr => attr.Name === 'custom:otp').Value;
-
-//         // Validate the provided OTP
-//         if (otp === storedOTP) {
-//             return { statusCode: 200, body: JSON.stringify({ message: 'OTP verified successfully' }) };
-//         } else {
-//             return { statusCode: 400, body: JSON.stringify({ message: 'Invalid OTP' }) };
-//         }
-//     } catch (error) {
-//         console.error('Error verifying OTP:', error);
-//         return { statusCode: 500, body: JSON.stringify({ message: 'Error verifying OTP', error: error }) };
-//     }
-// };
