@@ -1,6 +1,6 @@
 require('dotenv').config(); // Load environment variables from .env file
 const AWS = require('aws-sdk');
-const { v4: uuidv4 } = require('uuid');
+
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
@@ -25,7 +25,7 @@ module.exports.insertCustomer = async (event) => {
         id: customerId,
         name,
         phone,
-
+        
         __typename: 'Customer', // Add __typename attribute
         _lastChangedAt: Date.now(), // Add _lastChangedAt attribute
         _version: 1, // Add _version attribute
