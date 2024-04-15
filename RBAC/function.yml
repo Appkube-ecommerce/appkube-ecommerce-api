@@ -81,62 +81,59 @@
 
 
 
-service: rbac
+# service: rbac
 
-frameworkVersion: "3"
+# frameworkVersion: "3"
 
-plugins:
-  - serverless-offline
+# plugins:
+#   - serverless-offline
 
-provider:
-  name: aws
-  runtime: nodejs14.x 
+# provider:
+#   name: aws
+#   runtime: nodejs14.x 
 
-functions:
+# functions:
   authorizer:
     handler: authorizer.authorizer 
-    # events:
-    #   - http:
-    #       path: /authr
-    #       method: post
-  dynamicPermission:
-    handler: dynamicPermission.fetchDynamicGroups 
-    events:
-      - http:
-          path: /authorizer1
-          method: post
-  getpermission:
-    handler: getpermissiondet.getPermission
-    events:
-      - http:
-          path: /permissions
-          method: get
+    
+  # dynamicPermission:
+  #   handler: dynamicPermission.fetchDynamicGroups 
+  #   events:
+  #     - http:
+  #         path: /authorizer1
+  #         method: post
+  # getpermission:
+  #   handler: getpermissiondet.getPermission
+  #   events:
+  #     - http:
+  #         path: /permissions
+  #         method: get
 
   SuperAdmin:
-    handler: signup.handler
+    handler: RBAC/signup.handler
     events:
       - http:
           path: /signup
           method: post
 
   SuperAdminsignin:
-    handler: signin.handler
-    timeout: 600
+    handler: RBAC/signin.handler
+    timeout: 300
     events:
       - http:
           path: /signin
           method: post
 
   groupDynamic:
-    handler: groupsDynamic.fetchDynamicGroups
-    timeout: 600
+    handler: RBAC/groupsDynamic.fetchDynamicGroups
+    timeout: 300
     events:
       - http:
           path: /groupsDynamic
           method: post
 
   getAllProducts:
-    handler: getAllProducts.handler
+    handler: RBAC/getAllProducts.handler
     events:
       - http:
           path: /getproducts
