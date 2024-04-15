@@ -3,8 +3,6 @@
 const AWS = require('aws-sdk');
 
 AWS.config.update({
-  region: 'us-east-1', // Set your AWS region
-  endpoint: 'http://localhost:8000' // Use this for local testing with DynamoDB Local
 });
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();

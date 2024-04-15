@@ -6,7 +6,7 @@ const dynamodb = new AWS.DynamoDB.DocumentClient();
 module.exports.deleteCustomerById = async (event) => {
   try {
     // Fetch the table name from the environment variable
-    const tableName = process.env.DYNAMODB_TABLE_NAME;
+    const tableName = process.env.CUSTOMER_TABLE;
 
     // Extract customerId from the path parameters
     const customerId = event.pathParameters.customerId;

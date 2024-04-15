@@ -6,7 +6,7 @@ const dynamoDB = new DynamoDBClient({
 });
 
 // Handler function to retrieve all orders
-exports.getAllOrders = async () => {
+exports.handler = async () => {
     try {
         // Scan the DynamoDB table to retrieve all orders
         const scanParams = {

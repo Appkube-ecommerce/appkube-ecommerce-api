@@ -12,9 +12,12 @@ module.exports.updateCustomer = async (event) => {
     const { name, phone } = requestBody;
 
     // Fetch the table name from the environment variable
-    const tableName = process.env.DYNAMODB_TABLE_NAME;
+    const tableName = process.env.CUSTOMER_TABLE;
+    console.log(tableName)
+    
 
     const customerExists = await getCustomerById(customerId);
+    console.log(customerExists)
     if (customerExists) {
       // Customer exists, update only name and phone
       const params = {
@@ -53,7 +56,7 @@ module.exports.updateCustomer = async (event) => {
 };
 
 async function getCustomerById(id) {
-  const tableName = process.env.DYNAMODB_TABLE_NAME;
+  const tableName = process.env.CUSTOMER_TABLE;
   const params = {
     TableName: tableName,
     Key: { id }

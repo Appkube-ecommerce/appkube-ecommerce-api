@@ -10,7 +10,7 @@ const dynamoDB = new DynamoDBClient({
 const tableName = process.env.ORDER_TABLE_NAME;
 
 // Handler function to delete an order by ID
-module.exports.deleteOrderById = async (event) => {
+module.exports.handler = async (event) => {
     try {
         // Extract orderId from path parameters
         const orderId = event.pathParameters.id;

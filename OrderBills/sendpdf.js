@@ -1,7 +1,7 @@
 
 
 require('dotenv').config();
-const whatsappToken = process.env.WHATSAP_TOKEN;
+const whatsappToken = process.env.FACEBOOK_ACCESS_TOKEN;
 
 
 exports.sendDocumentMessage = async (phoneNumber, documentLink, documentName) => {

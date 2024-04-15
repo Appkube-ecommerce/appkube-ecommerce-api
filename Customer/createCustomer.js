@@ -17,7 +17,7 @@ module.exports.insertCustomer = async (event) => {
     const customerId = generateCustomerId();
 
     // Fetch the table name from the environment variable
-    const tableName = process.env.DYNAMODB_TABLE_NAME;
+    const tableName = process.env.CUSTOMER_TABLE;
 
     const params = {
       TableName: tableName,

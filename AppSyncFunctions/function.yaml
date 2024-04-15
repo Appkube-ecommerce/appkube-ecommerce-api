@@ -1,2 +1,4 @@
-createOrderAppSync:
+OrderAppSync:
   handler: AppSyncFunctions/Order.handler
+ProductAppSync:
+  handler: AppSyncFunctions/Products.handler

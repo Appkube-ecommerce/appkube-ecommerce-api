@@ -13,7 +13,7 @@ const dynamoDB = new DynamoDBClient({
 const tableName = process.env.ORDER_TABLE_NAME;
 
 // Handler function to get an order by ID
-module.exports.getOrderById = async (event) => {
+module.exports.handler = async (event) => {
     try {
         // Extract orderId from path parameters
         const orderId = event.pathParameters.id;

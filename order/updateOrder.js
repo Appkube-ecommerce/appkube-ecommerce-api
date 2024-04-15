@@ -19,9 +19,9 @@ function generateRandomOrderId() {
 }
 
 // Handler function to create or update an order
-module.exports.updateOrder = async (event) => {
+module.exports.handler = async (event) => {
     try {
-        const orderId = event.pathParameters.orderId; // Extract orderId from path parameters
+        const orderId = event.pathParameters.id; // Extract orderId from path parameters
 
         if (!orderId) {
             throw new Error('orderId is required');

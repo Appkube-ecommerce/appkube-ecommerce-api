@@ -6,7 +6,7 @@ const dynamoDB = new DynamoDBClient({
     endpoint: process.env.ENDPOINT
 });
 
-module.exports.getById = async (event) => {
+module.exports.handler = async (event) => {
     try {
         // Extract the order ID from the path parameters
         const OrderId = event.pathParameters.OrderId;

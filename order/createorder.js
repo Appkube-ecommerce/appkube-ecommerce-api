@@ -19,7 +19,7 @@ function generateRandomOrderId() {
 }
 
 // Handler function to create an order
-module.exports.createOrder = async (event) => {
+module.exports.handler = async (event) => {
     try {
         const body = JSON.parse(event.body);
         const { items, paymentMethod, status, customerId, totalPrice } = body;
