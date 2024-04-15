@@ -3,8 +3,10 @@
 {
     "group": "admin",
     "permissions": [
-        {"permission":["write","read"],
-        "endpoint":"/products"}
+        {
+        "permission":["write","read"],
+        "endpoint":"/products"
+    }
          
     ]
 }
