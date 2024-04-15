@@ -97,56 +97,42 @@ async function sendAddressMessageWithSavedAddresses(toNumber, whatsappToken, use
 
 async function getUserAddressFromDatabase(senderId) {
     try {
-        // Query to fetch user address details from the database based on senderId
-        const query = {
-            text: 'SELECT * FROM users WHERE phone_number = $1',
-            values: [senderId],
+        const params = {
+            TableName: 'users', // Specify the table name
+            Key: { 'phone_number': senderId } // Define the primary key
         };
 
-        // Connect to the database and execute the query
+        const result = await dynamodb.get(params).promise();
 
-
-        // await client.connect();
-        const { rows } = await client.query(query);
-        
-
-        if (rows.length === 0) {
+        if (!result.Item) {
             return null; // User not found in the database
         }
 
-        // Extract user address details from the database row
-        const useruserDetails = rows[0].details;
-        return useruserDetails;
+        return result.Item.details; // Extract user details from the database item
     } catch (error) {
-        console.error('Error fetching user address details from the database:', error);
+        console.error('Error fetching user address details from DynamoDB:', error);
         throw error;
     }
 }
- async function storeUserResponse(phone_number_id, message) {
+
+// Function to store user response in DynamoDB
+async function storeUserResponse(phone_number_id, message) {
     try {
-        // Connect to the database
+        const params = {
+            TableName: 'users', // Specify the table name
+            Item: {
+                'phone_number': phone_number_id, // Specify the primary key
+                'details': message // Store user details
+            }
+        };
 
-    //    await client.connect();
+        await dynamodb.put(params).promise(); // Store user response in DynamoDB
 
-        // Check if the user already exists in the database
-        const existingRecord = await client.query('SELECT phone_number FROM users WHERE phone_number = $1', [phone_number_id]);
-
-        if (existingRecord.rows.length === 0) {
-            // Insert a new record if the user doesn't exist
-            await client.query('INSERT INTO users(phone_number, details) VALUES($1, $2)', [phone_number_id, message]);
-        } else {
-            // Update existing record with user's new response
-            await client.query('UPDATE users SET details = $1 WHERE phone_number = $2', [message, phone_number_id]);
-        }
-
-        // Release the database connection
-
-        
     } catch (error) {
-        console.error('Error storing user response:', error);
+        console.error('Error storing user response in DynamoDB:', error);
         throw error;
     }
-};
+}
 module.exports = {
     sendAddressMessageWithSavedAddresses,
     getUserAddressFromDatabase,
