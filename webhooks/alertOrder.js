@@ -1,15 +1,28 @@
-const { client, connectToDatabase } = require("./db");
+const AWS = require('aws-sdk');
 
+AWS.config.update({
+    region: '', // Any valid AWS region (DynamoDB Local ignores the region)
+    endpoint: 'http://localhost:8000' // Endpoint URL for DynamoDB Local
+});
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
+// Function to get the incomplete order alert flag from DynamoDB
 async function getIncompleteOrderAlertSent(senderId) {
     try {
-        // Ensure that the client is connected to the database
-       
+        const params = {
+            TableName: 'sessions', // Specify the table name
+            Key: { 'sender_id': senderId }, // Define the primary key
+            ProjectionExpression: 'session_data.incompleteOrderAlertSent' // Projection expression to only retrieve the flag
+        };
 
-        // Use the client to query the database
-        const result = await client.query('SELECT session_data->>\'incompleteOrderAlertSent\' AS flag FROM sessions WHERE sender_id = $1', [senderId]);
+        const result = await dynamodb.get(params).promise();
 
-        // If a row exists, return the flag value; otherwise, return false
-        return result.rows.length > 0 ? result.rows[0].flag : false;
+        if (result.Item && result.Item.session_data && result.Item.session_data.incompleteOrderAlertSent) {
+            return result.Item.session_data.incompleteOrderAlertSent === 'true'; // Convert flag to boolean
+        } else {
+            return false; // If no item found or incompleteOrderAlertSent is undefined, return false
+        }
     } catch (error) {
         console.error('Error retrieving incomplete order alert flag:', error);
         throw error;
@@ -17,21 +30,18 @@ async function getIncompleteOrderAlertSent(senderId) {
 }
 
 
-
-
-
-
+// Function to update the incomplete order alert flag in DynamoDB
 async function setIncompleteOrderAlertSent(senderId, value) {
     try {
-        // Connect to the database
-        // Query the database to update the flag
-        console.log('Updating incomplete order alert flag for sender:', senderId);
-        console.log('New flag value:', value);
-        const query = 'UPDATE sessions SET session_data = jsonb_set(session_data, \'{"incompleteOrderAlertSent"}\', $1::jsonb) WHERE sender_id = $2';
-        await client.query(query, [{ incompleteOrderAlertSent: value }, senderId]);
-        console.log('Incomplete order alert flag updated successfully.');
-        // Release the client back to the pool
-        // If necessary, handle any other cleanup or post-operation tasks
+        const params = {
+            TableName: 'sessions', // Specify the table name
+            Key: { 'sender_id': senderId }, // Define the primary key
+            UpdateExpression: 'SET session_data.incompleteOrderAlertSent = :val', // Update expression
+            ExpressionAttributeValues: { ':val': value }, // Attribute values
+            ReturnValues: 'UPDATED_NEW' // Specify what to return after the update
+        };
+
+        await dynamodb.update(params).promise(); // Update item in DynamoDB
     } catch (error) {
         console.error('Error updating incomplete order alert flag:', error);
         throw error;
@@ -40,43 +50,49 @@ async function setIncompleteOrderAlertSent(senderId, value) {
 
 async function getPreviousIncompleteOrder(senderId) {
     try {
-        // Query the database to retrieve the incomplete order alert flag and cart items
-        const result = await client.query('SELECT session_data->>\'incompleteOrderAlertSent\' AS flag, session_data->\'cart\' AS cart FROM sessions WHERE sender_id = $1', [senderId]);
+        const params = {
+            TableName: 'sessions', // Specify the table name
+            Key: { 'sender_id': senderId }, // Define the primary key
+            ProjectionExpression: 'session_data.incompleteOrderAlertSent, session_data.cart' // Projection expression to only retrieve the flag and cart
+        };
 
-        // Log the fetched data
-        console.log('Fetched data:', result.rows);
-        
-        // Extract and return the incomplete order alert flag and cart items from the result
-        if (result.rows.length > 0) {
-            const flag = result.rows[0].flag === 'true'; // Convert flag to boolean
-            const cart = result.rows[0].cart ? result.rows[0].cart.items : []; // Extract cart items or initialize with empty array
+        const result = await dynamodb.get(params).promise();
+
+        if (result.Item && result.Item.session_data && 'incompleteOrderAlertSent' in result.Item.session_data) {
+            const flag = result.Item.session_data.incompleteOrderAlertSent === 'true'; // Convert flag to boolean
+            const cart = result.Item.session_data.cart?.items || []; // Extract cart items or initialize with empty array
             return { flag, cart };
-            
-            
         } else {
             return { flag: false, cart: [] }; // No previous incomplete order alert found
         }
-        
     } catch (error) {
         console.error('Error retrieving incomplete order alert flag and cart:', error);
         throw error;
     }
 }
+
+
+// Function to fetch the previous order cart from DynamoDB
 async function fetchPreviousOrderFromDatabase(senderId) {
     try {
-      const query = {
-        text: 'SELECT session_data -> \'cart\' AS cart FROM sessions WHERE sender_id = $1',
-        values: [senderId],
-      };
-  
-      const result = await client.query(query);
-      // Extract and return the cart data
-      return result.rows[0]?.cart;
+        const params = {
+            TableName: 'sessions', // Specify the table name
+            Key: { 'sender_id': senderId }, // Define the primary key
+            ProjectionExpression: 'session_data.cart' // Projection expression to only retrieve the cart
+        };
+
+        const result = await dynamodb.get(params).promise();
+
+        if (result.Item && result.Item.session_data.cart) {
+            return result.Item.session_data.cart.items;
+        } else {
+            return null; // No previous order cart found
+        }
     } catch (error) {
-      console.error('Error fetching previous order from database:', error.message);
-      return null;
+        console.error('Error fetching previous order from database:', error);
+        throw error;
     }
-  }
+}
 
 module.exports = {
     getIncompleteOrderAlertSent,

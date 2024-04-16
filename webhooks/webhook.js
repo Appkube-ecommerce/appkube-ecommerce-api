@@ -1,46 +1,74 @@
 const https = require("https");
 const { sendCatalogMessage } = require("./sendCatalog");
 const { getUserAddressFromDatabase, sendAddressMessageWithSavedAddresses, storeUserResponse } = require("./getAddress");
-const { client, connectToDatabase } = require("./db");
+//const { client, connectToDatabase } = require("./db");
 const { setIncompleteOrderAlertSent, getIncompleteOrderAlertSent,getPreviousIncompleteOrder} = require('./alertOrder')
 const { sendButtons} = require('./merge');
+const AWS = require('aws-sdk');
 
-//const createPaymentLink = require("./razorPay");
- 
-client.connect();
- 
+AWS.config.update({
+    region: '', // Specify your AWS region
+    endpoint: 'http://localhost:8000' // Specify your DynamoDB endpoint URL (for DynamoDB Local)
+});
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+
 // Import the getSession and updateSession functions
 async function getSession(senderId) {
     try {
-        const result = await client.query('SELECT * FROM sessions WHERE sender_id = $1', [senderId]);
+        const params = {
+            TableName: 'sessions', // Specify the table name
+            Key: { 'sender_id': senderId } // Define the primary key
+        };
 
-        if (result.rows.length > 0) {
-            return result.rows[0].session_data;
-        } else {
-            // Initialize session object with incompleteOrderAlertSent set to false for new users
-            return { incompleteOrderAlertSent: false };
+        console.log('Getting session for senderId:', senderId);
+
+        const result = await dynamodb.get(params).promise();
+
+        console.log('Result:', result);
+
+        if (!result.Item || !result.Item.session_data || !result.Item.session_data.S) {
+            // If session_data attribute does not exist or is undefined, return default session object
+            console.log('Session not found for senderId:', senderId);
+            return { incompleteOrderAlertSent: false, cart: { items: [] } };
         }
+
+        // Parse session_data attribute from JSON string to JavaScript object
+        const sessionData = JSON.parse(result.Item.session_data.S);
+
+        console.log('Session found for senderId:', senderId, 'Session Data:', sessionData);
+
+        return sessionData;
     } catch (error) {
-        console.error('Error getting session from PostgreSQL:', error);
+        console.error('Error getting session from DynamoDB:', error);
         throw error;
     }
 }
 
- 
-// Define a function to update or create a session
+
+
+// Function to update session in DynamoDB
 async function updateSession(senderId, session) {
     try {
-        const result = await client.query(
-            'INSERT INTO sessions(sender_id, session_data) VALUES ($1, $2) ON CONFLICT(sender_id) DO UPDATE SET session_data = $2 RETURNING *',
-            [senderId, session]
-        );
+        const params = {
+            TableName: 'sessions', // Specify the table name
+            Key: { 'sender_id': senderId }, // Define the primary key
+            UpdateExpression: 'SET session_data = :data', // Update expression
+            ExpressionAttributeValues: {
+                ':data': session // No need to stringify here
+            },
+            ReturnValues: 'ALL_NEW' // Specify what to return after the update
+        };
 
-        return result.rows[0].session_data;
+        const result = await dynamodb.update(params).promise(); // Update item in DynamoDB
+
+        return result.Attributes.session_data; // Return updated session data
     } catch (error) {
-        console.error('Error updating session in PostgreSQL:', error);
+        console.error('Error updating session in DynamoDB:', error);
         throw error;
-    } 
+    }
 }
+
 // Define the sendReply function
 async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
     try {
@@ -172,18 +200,16 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
                                         
                                             
                                                     case 'order':
-    // Handle order messages
-    // Process the order details and update the session
-                                                const messageOrder = message.order.product_items;
-                                                const newCartItems = messageOrder.map(item => ({
-                                                    productId: item.product_retailer_id,
-                                                    quantity: item.quantity,
-                                                    price: item.item_price,
-                                                    // Add other details as needed
-                                                }));
+    // Check if the order message contains product items
+        const messageOrder = message.order.product_items;
+        const newCartItems = messageOrder.map(item => ({
+            productId: item.product_retailer_id,
+            quantity: item.quantity,
+            price: item.item_price
+            // Add other details as needed
+        }));
 
-                                                // Check if the session has existing cart items
-                                                if (!session.cart || !session.cart.items) {
+        if (!session.cart || !session.cart.items) {
                                                     // If no existing cart items, initialize the cart with the new items
                                                     session.cart = { items: newCartItems };
                                                 } else {
@@ -193,132 +219,160 @@ async function sendReply(phone_number_id, whatsapp_token, to, reply_message) {
 
                                                 // Save the updated session
                                                 session = await updateSession(senderId, session);
-                
-                                                        // Check if there is an incomplete order after a delay
-                                                        setTimeout(async () => {
-                                                            const previousOrder = await getPreviousIncompleteOrder(senderId);
-                
-                                                            if (session && session.cart && session.cart.items && session.cart.items.length > 0 && incompleteOrderAlertSent) {
-                                                                // Handle incomplete order
-                                                                const incompleteOrderTotal = calculateTotalAmount(previousOrder.cart);
-                                                                const incompleteOrderMessage = `Your previous order is incomplete. Total amount: ${incompleteOrderTotal}. Please choose an option:`;
-                
-                                                                // Define the options with merge and continue buttons
-                                                                const options = {
-                                                                    messaging_product: "whatsapp",
-                                                                    recipient_type: "individual",
-                                                                    to: senderId,
-                                                                    type: "interactive",
-                                                                    interactive: {
-                                                                        type: "button",
-                                                                        body: {
-                                                                            text: incompleteOrderMessage
-                                                                        },
-                                                                        action: {
-                                                                            buttons: [
-                                                                                {
-                                                                                    type: "reply",
-                                                                                    reply: {
-                                                                                        id: "merge_button",
-                                                                                        title: "Merge Order"
-                                                                                    }
-                                                                                },
-                                                                                {
-                                                                                    type: "reply",
-                                                                                    reply: {
-                                                                                        id: "continue_button",
-                                                                                        title: "Continue Order"
-                                                                                    }
-                                                                                }
-                                                                            ]
-                                                                        }
-                                                                    }
-                                                                };
-                
-                                                                await sendButtons(WHATSAPP_TOKEN, options);
-                
-                                                                // Set the incomplete order alert flag to true
-                                                                await setIncompleteOrderAlertSent(senderId, true);
-                                                            } else {
-                                                                // If there is no incomplete order, send the address directly
-                                                                const userDetails = await getUserAddressFromDatabase(senderId);
-                                                                await sendAddressMessageWithSavedAddresses(senderId, WHATSAPP_TOKEN, userDetails);
-                                                            }
-                                                        }, 1000); // 1 second delay
-                                                        break;
-                                            
-                                                case 'catalog_sent':
-                                                    // Handle catalog sent message
-                                                    // Add your logic here to process the catalog sent message
-                                                    console.log('Catalog sent:', message);
-                                                    // Example: You can trigger some action after the catalog is sent
-                                                    break;
-                                            
-                                                    case 'interactive':
-                                                            if (message.interactive.type === 'nfm_reply') {
-                                                                // Process the interactive message
-                                                                // Reset the incomplete order flag when the order is completed
-                                                                incompleteOrderAlertSent = false;
-                                                                // Continue with regular processing
-                                                                const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
-                                                                await storeUserResponse(senderId, responseJson);
-                                                                const orders = session.cart.items;
-                                                                // Calculate total price based on the extracted orders
-                                                                const totalPrice = calculateTotalPrice(orders);
-                                                                let paymentLink = await createPaymentLink.createPaymentLink(totalPrice);
-                                                                sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
-                                                                // Save the updated session
-                                                                session = await updateSession(senderId, session);
-                                                                // Reset the incomplete order flag when the order is completed
-                                                                incompleteOrderAlertSent = false;
-                                                                // Update the flag in the database
-                                                                await setIncompleteOrderAlertSent(senderId, false);
-                                                            } else if (message.interactive.type === 'button_reply') {
-                                                                // Handle button reply
-                                                                const buttonReplyId = message.interactive.button_reply.id;
-                                                                switch (buttonReplyId) {
-                                                                    case 'merge_button':
-                                                                        // Handle merge button action
-                                                                        const previousOrder = await getPreviousIncompleteOrder(senderId);
-                                                                        if (previousOrder && previousOrder.flag && session && session.incompleteOrderAlertSent) {
-                                                                            session.cart = mergeCarts(session.cart, previousOrder.cart);
-                                                                            incompleteOrderAlertSent = false; // Reset the incomplete order flag
-                                                                            // Update the session and set the incomplete order alert flag
-                                                                            session = await updateSession(senderId, session);
-                                                                            await setIncompleteOrderAlertSent(senderId, false);
-                                                                        } else {
-                                                                            // Handle the case when previous order doesn't exist or conditions are not met
-                                                                            console.error('Previous order not found or conditions not met');
-                                                                        }
-                                                                        break;
-                                                                        case 'continue_button':
-                                                                            // Handle continue button action
-                                                                            // Reset the incomplete order flag
-                                                                            incompleteOrderAlertSent = false;
-                                                                            // Update the session to clear incomplete order flag and keep existing cart items
-                                                                            session.incompleteOrderAlertSent = false;
-                                                                            // Save the updated session
-                                                                            session = await updateSession(senderId, session);
-                                                                            // Update the incomplete order alert flag in the database
-                                                                            await setIncompleteOrderAlertSent(senderId, false);
-                                                                            break;
-                                                                        
-                                                                    default:
-                                                                        // Handle unknown button actions
-                                                                        console.error('Unknown button action:', buttonReplyId);
-                                                                        break;
-                                                                }
-                                                                // After handling the button response, send the address button
-                                                                const userDetails = await getUserAddressFromDatabase(senderId);
-                                                                await sendAddressMessageWithSavedAddresses(senderId, WHATSAPP_TOKEN, userDetails);
-                                                            }
-                                                            break;
+
+       // Get the current session
+       // Get the current session
+// Get the current session
 
 
-                                                        default:
-                                                            // Handle unknown message types gracefully
-                                                            console.error('Unknown message type:', message.type);
-                                                            break;
+
+    
+
+        
+        // Check if there is an incomplete order after a delay
+        setTimeout(async () => {
+            const previousOrder = await getPreviousIncompleteOrder(senderId);
+
+            if (session && session.cart && session.cart.items && session.cart.items.length > 0 && incompleteOrderAlertSent) {
+                // Handle incomplete order
+                const incompleteOrderTotal = calculateTotalAmount(previousOrder.cart);
+                const incompleteOrderMessage = `Your previous order is incomplete. Total amount: ${incompleteOrderTotal}. Please choose an option:`;
+
+                // Define the options with merge and continue buttons
+                const options = {
+                    messaging_product: "whatsapp",
+                    recipient_type: "individual",
+                    to: senderId,
+                    type: "interactive",
+                    interactive: {
+                        type: "button",
+                        body: {
+                            text: incompleteOrderMessage
+                        },
+                        action: {
+                            buttons: [
+                                {
+                                    type: "reply",
+                                    reply: {
+                                        id: "merge_button",
+                                        title: "Merge Order"
+                                    }
+                                },
+                                {
+                                    type: "reply",
+                                    reply: {
+                                        id: "continue_button",
+                                        title: "Continue Order"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                };
+
+                await sendButtons(WHATSAPP_TOKEN, options);
+
+                // Set the incomplete order alert flag to true
+                await setIncompleteOrderAlertSent(senderId, true);
+            } else {
+                // If there is no incomplete order, send the address directly
+                //await setIncompleteOrderAlertSent(senderId, true);
+                const userDetails = await getUserAddressFromDatabase(senderId);
+                await sendAddressMessageWithSavedAddresses(senderId, WHATSAPP_TOKEN, userDetails);
+            }
+        }, 1000); // 1 second delay
+        break;
+
+    case 'catalog_sent':
+        // Handle catalog sent message
+        // Add your logic here to process the catalog sent message
+        console.log('Catalog sent:', message);
+        // Example: You can trigger some action after the catalog is sent
+        break;
+
+    case 'interactive':
+        if (message.interactive.type === 'nfm_reply') {
+            // Process the interactive message
+            // Reset the incomplete order flag when the order is completed
+            incompleteOrderAlertSent = false;
+            // Continue with regular processing
+            const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
+            await storeUserResponse(senderId, responseJson);
+            const orders = session.cart.items;
+            // Calculate total price based on the extracted orders
+            const totalPrice = calculateTotalPrice(orders);
+            let paymentLink = await createPaymentLink.createPaymentLink(totalPrice);
+            sendPaymentLinkButton(senderId, WHATSAPP_TOKEN, paymentLink.short_url);
+            // Save the updated session
+            session = await updateSession(senderId, session);
+            // Reset the incomplete order flag when the order is completed
+            incompleteOrderAlertSent = false;
+            // Update the flag in the database
+            await setIncompleteOrderAlertSent(senderId, false);
+        } else if (message.interactive.type === 'button_reply') {
+            // Handle button reply
+            const buttonReplyId = message.interactive.button_reply.id;
+            switch (buttonReplyId) {
+                case 'merge_button':
+                    // Handle merge button action
+                    const previousOrder = await getPreviousIncompleteOrder(senderId);
+                    if (previousOrder && previousOrder.flag && session && session.incompleteOrderAlertSent) {
+                        session.cart = mergeCarts(session.cart, previousOrder.cart);
+                        incompleteOrderAlertSent = false; // Reset the incomplete order flag
+                        // Update the session and set the incomplete order alert flag
+                        session = await updateSession(senderId, session);
+                        await setIncompleteOrderAlertSent(senderId, false);
+                    } else {
+                        // Handle the case when previous order doesn't exist or conditions are not met
+                        console.error('Previous order not found or conditions not met');
+                    }
+                    break;
+                    case 'continue_button':
+    // Reset the incomplete order flag
+    incompleteOrderAlertSent = false;
+    // Update the session to clear incomplete order flag
+    session.incompleteOrderAlertSent = false;
+    // Save the updated session
+    session = await updateSession(senderId, session);
+    // Update the incomplete order alert flag in the database
+    await setIncompleteOrderAlertSent(senderId, false);
+
+    console.log('Debugging information:');
+    console.log('message:', message);
+
+    // Check if message.order exists
+    if (message.order && message.order.product_items && Array.isArray(message.order.product_items) && message.order.product_items.length > 0) {
+        // Define newCartItems and print recently added cart items to console
+        const newCartItems = message.order.product_items.map(item => ({
+            productId: item.product_retailer_id,
+            quantity: item.quantity,
+            price: item.item_price
+        }));
+
+        console.log("Recently added cart items after continuing:");
+        newCartItems.forEach(item => {
+            console.log(`Product ID: ${item.productId}, Quantity: ${item.quantity}, Price: ${item.price}`);
+            // You can add other details as needed
+        });
+    } else {
+        console.error('Unable to retrieve valid product items from the continue button action.');
+        console.log('message.order:', message.order);
+    }
+    break;
+
+
+
+           }
+            // After handling the button response, send the address button
+            const userDetails = await getUserAddressFromDatabase(senderId);
+            await sendAddressMessageWithSavedAddresses(senderId, WHATSAPP_TOKEN, userDetails);
+        }
+        break;
+
+    default:
+        // Handle unknown message types gracefully
+        console.error('Unknown message type:', message.type);
+        break;
                                                                                                     }
 
                                                         // After handling the button response, send the address button
